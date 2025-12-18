@@ -1,0 +1,8 @@
+baseURL = 'https://davids-lab.com'
+languageCode = 'en-us'
+title = "David's Home Lab Blog"
+theme = 'PaperMod'
+[params.assets]
+    favicon = "favicon.ico" 
+    favicon16x16 = "favicon-16x16.png"
+    favicon32x32 = "favicon-32x32.png" 
