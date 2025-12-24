@@ -1,8 +1,20 @@
 baseURL = 'https://davids-lab.com'
 languageCode = 'en-us'
-title = "David's Home Lab Blog"
+title = "David's Home Lab"
 theme = 'PaperMod'
 [params.assets]
     favicon = "favicon.ico" 
     favicon16x16 = "favicon-16x16.png"
     favicon32x32 = "favicon-32x32.png" 
+
+[[menu.main]]
+  identifier = "about"
+  name = "About"
+  pageRef = "/about"
+  weight = 1
+
+[[menu.main]]
+  identifier = "blogs"
+  name = "Blogs"
+  pageRef = "/blogs"
+  weight = 2
