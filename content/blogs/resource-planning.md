@@ -4,6 +4,7 @@ date: 2025-12-13T09:09:00+00:00
 draft: false
 tags: ["planning"]
 categories: ["design"]
+hiddenInHomeList: true
 ---
 
 
