@@ -5,6 +5,7 @@ layout: "posts"
 draft: false
 tags: ["control plane", "master node", "configuration"]
 categories: ["setup"]
+hiddenInHomeList: true
 ---
 
 This concerns setting up the control plane nodes which run a fresh installation of Pi OS. I've already reserved IPs for all Raspberry Pis on my router. For my homelab static IPs will ensure stable Kubernetes node communication, ExternalDNS updates, and Harbor registry access without lease expiration disruptions.
