@@ -8,7 +8,7 @@ categories: ["setup"]
 hiddenInHomeList: true
 ---
 
-This concerns setting up the control plane nodes which run a fresh installation of Pi OS. I've already reserved IPs for all Raspberry Pis on my router. For my homelab static IPs will ensure stable Kubernetes node communication, ExternalDNS updates, and Harbor registry access without lease expiration disruptions.
+This blog walks though how I went about setting up kubeadm on my primary control plane node. This concerns setting up the control plane nodes which run a fresh installation of Pi OS. I've already reserved IPs for all Raspberry Pis on my router. For my homelab static IPs will ensure stable Kubernetes node communication, ExternalDNS updates, and Harbor registry access without lease expiration disruptions. If you want to see the polished end result, the install script is located [here](https://github.com/dtlight/homelab/blob/main/runbooks/k8sSetup/install-k8s.sh). 
 
 ## Create staic IPs for CP node + kube vip:
 
@@ -41,7 +41,6 @@ free -h #(should show 0 swap)
 swapon --show #(no output).​
 
 ```
-
 
 ## Installing kube packages on Debian
  ```bash
@@ -162,7 +161,7 @@ Following [kube-vip documentation](https://kube-vip.io/docs/installation/static/
 
 Static Pods are Kubernetes Pods that are run by the kubelet on a single node and are not managed by the Kubernetes cluster itself. This means that whilst the Pod can appear within Kubernetes, it can't make use of a variety of Kubernetes functionality (such as the Kubernetes token or ConfigMap resources). The static Pod approach is primarily required for kubeadm as this is due to the sequence of actions performed by kubeadm. Ideally, we want kube-vip to be part of the Kubernetes cluster, but for various bits of functionality we also need kube-vip to provide a HA virtual IP as part of the installation.
 
-#### On cp1:
+### On cp1:
 
 1. Set kube-vip variables
 ```bash
@@ -185,7 +184,7 @@ alias kube-vip="sudo ctr image pull ghcr.io/kube-vip/kube-vip:${KVVERSION}; sudo
 
 3. Generate the static pod manifest (ARP mode)
 
-**ARP vs BGP (Quick Comparison)**
+**ARP vs BGP**
 
 | Mode | Network Req       | Router Config | Use Case              |
 |------|-------------------|---------------|-----------------------|
@@ -194,7 +193,6 @@ alias kube-vip="sudo ctr image pull ghcr.io/kube-vip/kube-vip:${KVVERSION}; sudo
 
 
 So or my setup (eth0, single subnet 192.168.8.0/24), ARP is right. The --arp flag in the manifest command enables this mode.
-
 
 ```bash
 sudo mkdir -p /etc/kubernetes/manifests
@@ -818,7 +816,7 @@ kube-system    kube-proxy-lr2xt              1/1     Running   0          33m
 kube-system    kube-scheduler-cp1            1/1     Running   4          33m
 ```
 
-## Shutting down safely
+## Shutting down and starting up safely
 
 Before powering off
 ```bash
@@ -841,7 +839,6 @@ Wait until LEDs indicate it is fully off before unpluging.
 To start it up again, after boot up has finished Check that the node and pods recovered:
 
 ```bash
-kubectl get nodes
 kubectl get pods -A
 ```
 If node is Ready, it can be made schedulable again:
@@ -849,9 +846,79 @@ If node is Ready, it can be made schedulable again:
 ```bash
 kubectl uncordon cp1
 ```
+```bash
+david@cp1:~ $ kubectl uncordon cp1
+node/cp1 uncordoned
+```
+In my case the kube-flannel container is crashing (exit code 1) due to a missing kernel bridge-netfilter module, shown by the error "Failed to check br_netfilter: stat /proc/sys/net/bridge/bridge-nf-call-iptables: no such file or directory". This prevents Flannel's VXLAN networking from initializing, blocking CoreDNS pods that depend on CNI.
 
-#### On cp2:
-* Same export VIP and INTERFACE.
-* Same KVVERSION and alias kube-vip=....
-* Same kube-vip manifest pod ... | sudo tee /etc/kubernetes/manifests/kube-vip.yaml.
-* Then use the kubeadm join --control-plane ... command from cp1.
+```bash
+david@cp1:~ $ kubectl get pods -A
+NAMESPACE      NAME                          READY   STATUS              RESTARTS        AGE
+kube-flannel   kube-flannel-ds-wklmw         0/1     CrashLoopBackOff    755 (85s ago)   14d
+kube-system    coredns-66bc5c9577-2crjn      0/1     ContainerCreating   0               14d
+kube-system    coredns-66bc5c9577-nx4x7      0/1     ContainerCreating   0               14d
+kube-system    etcd-cp1                      1/1     Running             8 (14d ago)     14d
+kube-system    kube-apiserver-cp1            1/1     Running             8 (14d ago)     14d
+kube-system    kube-controller-manager-cp1   1/1     Running             5 (14d ago)     14d
+kube-system    kube-proxy-lr2xt              1/1     Running             1 (14d ago)     14d
+kube-system    kube-scheduler-cp1            1/1     Running             5 (14d ago)     14d
+```
+
+### The Fix
+
+1. Load Required Kernel Modules
+Run these on the host (cp1) as root to enable bridge-netfilter support:
+
+```bash
+sudo modprobe br_netfilter
+sudo sysctl -w net.bridge.bridge-nf-call-iptables=1
+sudo sysctl -w net.bridge.bridge-nf-call-ip6tables=1
+echo 'net.bridge.bridge-nf-call-iptables = 1' | sudo tee -a /etc/sysctl.conf
+echo 'net.bridge.bridge-nf-call-ip6tables = 1' | sudo tee -a /etc/sysctl.conf
+sudo sysctl --system
+```
+
+2. Remove the failing pod
+
+```bash
+david@cp1:~ $ kubectl delete po kube-flannel-ds-wklmw -n kube-flannel
+pod "kube-flannel-ds-wklmw" deleted from kube-flannel namespace
+```
+
+3. Check everything is running
+```bash
+david@cp1:~ $ kubectl get pods -A
+NAMESPACE      NAME                          READY   STATUS    RESTARTS      AGE
+kube-flannel   kube-flannel-ds-76t52         1/1     Running   0             2m37s
+kube-system    coredns-66bc5c9577-2crjn      1/1     Running   0             14d
+kube-system    coredns-66bc5c9577-nx4x7      1/1     Running   0             14d
+kube-system    etcd-cp1                      1/1     Running   8 (14d ago)   14d
+kube-system    kube-apiserver-cp1            1/1     Running   8 (14d ago)   14d
+kube-system    kube-controller-manager-cp1   1/1     Running   5 (14d ago)   14d
+kube-system    kube-proxy-lr2xt              1/1     Running   1 (14d ago)   14d
+kube-system    kube-scheduler-cp1            1/1     Running   5 (14d ago)   14d
+```
+
+## Setting up Control Plane node 2 (cp2):
+For my second control plane node I have automated everything I've done above with an install script. This will also be useful should I ever need to re-install everything on any node, from scratch. On your primary control plane node, running this [script](https://github.com/dtlight/homelab/blob/main/runbooks/k8sSetup/install-k8s.sh) automates everything I did above and should create `join-controlplane.sh` with the necessary tokens inside.
+
+Copy the join commands to cp2, from cp1, using my mac (which can ssh to both nodes):
+
+```bash
+scp david@cp1:join-controlplane.sh david@cp2:join-controlplane.sh
+```
+
+It's important to assign the correct environment variables described in the readMe of the install-k8s folder.
+
+The resulting output after a successfully run script:
+
+```bash
+This node has joined the cluster and a new control plane instance was created:
+
+* Certificate signing request was sent to apiserver and approval was received.
+* The Kubelet was informed of the new secure connection details.
+* Control plane label and taint were applied to the new node.
+* The Kubernetes control plane instances scaled up.
+* A new etcd member was added to the local/stacked etcd cluster.
+```
