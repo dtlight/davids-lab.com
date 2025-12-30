@@ -17,6 +17,8 @@ My hobbies & interests beyond the world of tech (in no particular order):
 - Scuba diving (PADI certified ✅)
 - Skiing
 
-**Thanks for visiting!**
+**Thanks for visiting!** 
 
 ### David Light
+
+[LinkedIn](https://www.linkedin.com/in/dtlight/) | [GitHub](https://github.com/dtlight)
