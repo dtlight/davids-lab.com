@@ -18,3 +18,13 @@ theme = 'PaperMod'
   name = "Blogs"
   pageRef = "/blogs"
   weight = 2
+
+[params]
+  ShowFullTextinRSS = true  # Shows full post content in RSS feeds
+
+[[params.socialIcons]]
+  name = "rss"
+  url = "index.xml"  # Adds clickable RSS icon in header
+
+[outputs]
+  home = ["HTML", "RSS", "JSON"]  # Generates /index.xml at site root
