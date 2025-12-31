@@ -6,27 +6,825 @@
     <description>Recent content in David&#39;s Lab on David&#39;s Home Lab</description>
     <generator>Hugo -- 0.152.2</generator>
     <language>en-us</language>
-    <lastBuildDate>Sun, 14 Dec 2025 09:09:00 +0000</lastBuildDate>
+    <lastBuildDate>Tue, 30 Dec 2025 09:09:00 +0000</lastBuildDate>
     <atom:link href="http://localhost:1313/index.xml" rel="self" type="application/rss+xml" />
+    <item>
+      <title>Kubernetes Releases v1.35</title>
+      <link>http://localhost:1313/blogs/timbernetes-1.35/</link>
+      <pubDate>Tue, 30 Dec 2025 09:09:00 +0000</pubDate>
+      <guid>http://localhost:1313/blogs/timbernetes-1.35/</guid>
+      <description>&lt;p&gt;&lt;img alt=&#34;Timbernetes&#34; loading=&#34;lazy&#34; src=&#34;https://kubernetes.io/blog/2025/12/17/kubernetes-v1-35-release/k8s-v1.35.png&#34;&gt;&lt;/p&gt;
+&lt;h1 id=&#34;kubernetes-releases-version-135&#34;&gt;Kubernetes Releases version 1.35&lt;/h1&gt;
+&lt;p&gt;On 17 December 2025 Kubernetes released version 1.35 code named “Timbernetes”, which is presented as a turning-point release that modernizes cluster operations, tightens security, and brings long-awaited vertical scaling and AI-focused scheduling into the core platform. Timbernetes has a theme of deepening the platform’s security posture while simplifying the operational model for platform teams.&lt;/p&gt;
+&lt;h2 id=&#34;release-theme-and-scope&#34;&gt;Release theme and scope&lt;/h2&gt;
+&lt;p&gt;Timbernetes leans into a “world tree” metaphor to emphasize maturity, deep roots in stability/security, and new “branches” for AI and edge workloads. The episode frames the release as one that will change how production clusters are run, highlighting 60+ enhancements and several high‑impact deprecations and removals.&lt;/p&gt;</description>
+      <content:encoded><![CDATA[<p><img alt="Timbernetes" loading="lazy" src="https://kubernetes.io/blog/2025/12/17/kubernetes-v1-35-release/k8s-v1.35.png"></p>
+<h1 id="kubernetes-releases-version-135">Kubernetes Releases version 1.35</h1>
+<p>On 17 December 2025 Kubernetes released version 1.35 code named “Timbernetes”, which is presented as a turning-point release that modernizes cluster operations, tightens security, and brings long-awaited vertical scaling and AI-focused scheduling into the core platform. Timbernetes has a theme of deepening the platform’s security posture while simplifying the operational model for platform teams.</p>
+<h2 id="release-theme-and-scope">Release theme and scope</h2>
+<p>Timbernetes leans into a “world tree” metaphor to emphasize maturity, deep roots in stability/security, and new “branches” for AI and edge workloads. The episode frames the release as one that will change how production clusters are run, highlighting 60+ enhancements and several high‑impact deprecations and removals.</p>
+<h2 id="three-breaking-changes">Three breaking changes</h2>
+<p>There are at least three breaking changes that cluster operators must plan for before upgrading.
+​</p>
+<ul>
+<li>
+<p><strong>cgroup v1 removed:</strong> Kubelet will not start on nodes still using cgroup v1, forcing a move to cgroup v2 for all supported environments. This affects older OS images and any custom AMIs that never migrated their control group configuration.</p>
+</li>
+<li>
+<p><strong>containerd 1.x end of life:</strong> Kubernetes 1.35 is the last release that will run with containerd 1.7, so teams must plan upgrades to containerd 2.x or risk being unable to move to future Kubernetes versions. This is particularly risky for air‑gapped or slow‑moving enterprises that pin old runtime versions.
+​</p>
+</li>
+<li>
+<p><strong>IPVS mode deprecated:</strong> IPVS service proxying is deprecated in favor of iptables/nftables‑based implementations. Operators relying on IPVS for performance or sticky sessions are urged to try alternatives and adjust cluster networking configurations early.</p>
+</li>
+</ul>
+<h2 id="inplace-pod-resize-ga-headline-feature">In‑Place Pod Resize GA (headline feature)</h2>
+<p>In‑Place Pod Resize, which finally reaches GA (General Availability, ie &lsquo;stable&rsquo;) after roughly six years from the initial KEP‑1287. The core change is that <code>spec.containers[].resources</code> for CPU and memory is now mutable, backed by a new resize sub-resource so the kubelet can adjust cgroups without restarting pods.
+​
+​Key behaviors and use cases include:
+​</p>
+<ul>
+<li>
+<p><strong>Zero‑downtime vertical scaling</strong>: CPU and memory can be increased or decreased on running pods without recreating them, avoiding connection drops, cache loss, or long warm‑up times.</p>
+</li>
+<li>
+<p><strong>Safe memory downsizing:</strong> Memory limit decreases are now supported with kubelet best‑effort checks, enabling right‑sizing of over-provisioned workloads instead of waiting for a reschedule.</p>
+</li>
+<li>
+<p><strong>New patterns:</strong></p>
+<ul>
+<li>Autoscalers or operators that continuously right‑size pods based on SLOs or internal metrics.</li>
+<li>Batch jobs that temporarily request more resources for intensive phases, then shrink back.</li>
+<li>Platforms that offer self‑service “boost” or “burst” controls to application teams.
+​
+​This is foundational for cost optimization in multi‑tenant clusters and an enabler for dynamic resource management in AI/ML and data workloads.</li>
+</ul>
+</li>
+</ul>
+<h2 id="pod-certificates-beta-and-security-hardening">Pod Certificates Beta and security hardening</h2>
+<p>Pod Certificates, a new beta feature (KEP‑4317) brings native, kubelet‑managed mTLS to pod‑to‑pod communication. Instead of relying on cert‑manager, SPIRE, or other sidecar‑based approaches, the kubelet now provisions and rotates workload certificates tied directly to pod identity.
+​
+​Security outcomes include:</p>
+<ul>
+<li>
+<p>Built‑in zero‑trust foundations: Every pod can get an X.509 identity, enabling mutual TLS inside the cluster without a separate PKI stack.</p>
+</li>
+<li>
+<p>Stronger node impersonation defences: Improved certificate handling and node validation reduce the risk of rogue machines joining a cluster and exfiltrating secrets or traffic from legitimate workloads.
+​</p>
+</li>
+</ul>
+<h2 id="gang-scheduling-alpha-and-ai-workloads">Gang Scheduling Alpha and AI workloads</h2>
+<p>Kubernetes 1.35 adds alpha support for gang scheduling via a new workload‑aware scheduling API, aimed squarely at distributed AI/ML training and other tightly coupled batch workloads. Gang scheduling can be described as “all or nothing”: either the full group of interdependent pods is scheduled together, or none are.</p>
+<p>This:</p>
+<ul>
+<li>
+<p>Eliminates partial‑start failures where only some workers come up, causing idle GPU nodes and failed training runs.</p>
+</li>
+<li>
+<p>Allows expressing job‑level requirements (e.g., “8 GPUs across 2 nodes”) directly to the scheduler, without custom controllers coordinating reservations.
+​</p>
+</li>
+<li>
+<p>Opens the door for native AI/ML workload platforms to rely less on external schedulers like Volcano or bespoke operator logic.
+​</p>
+</li>
+</ul>
+<h2 id="other-alpha-features-and-scheduling-enhancements">Other alpha features and scheduling enhancements</h2>
+<p>Beyond the headline items, there are several alpha and beta features that strengthen workload placement and hardware awareness.
+​</p>
+<ul>
+<li>Node Declared Features: Nodes can formally advertise capabilities (e.g., NUMA layout, accelerators, storage tiers), giving the scheduler richer data for placement decisions.
+​</li>
+<li>Partitionable Devices: Better modelling of devices that can be sliced or shared (for example, GPUs, DPUs, or accelerators), improving density and resource utilisation.
+​</li>
+<li>Extended Toleration Operators: New taint/toleration operators beyond just Equal and Exists, enabling SLO‑aware or “threshold” style placement such as targeting nodes above a certain cost, reliability, or performance score.
+​
+​These are all presented as steps toward “workload‑aware scheduling”, where the platform understands more about both hardware and SLOs, not just simple resource requests. You can read the full detail here <a href="https://kubernetes.io/blog/2025/12/17/kubernetes-v1-35-release/">https://kubernetes.io/blog/2025/12/17/kubernetes-v1-35-release/</a>.</li>
+</ul>
+]]></content:encoded>
+    </item>
     <item>
       <title>Control Plane Setup</title>
       <link>http://localhost:1313/blogs/control-plane-setup/</link>
       <pubDate>Sun, 14 Dec 2025 09:09:00 +0000</pubDate>
       <guid>http://localhost:1313/blogs/control-plane-setup/</guid>
-      <description>&lt;p&gt;This concerns setting up the control plane nodes which run a fresh installation of Pi OS. I&amp;rsquo;ve already reserved IPs for all Raspberry Pis on my router. For my homelab static IPs will ensure stable Kubernetes node communication, ExternalDNS updates, and Harbor registry access without lease expiration disruptions.&lt;/p&gt;
-&lt;h2 id=&#34;create-staic-ips-for-cp-node--kube-vip&#34;&gt;Create staic IPs for CP node + kube vip:&lt;/h2&gt;
-&lt;div class=&#34;highlight&#34;&gt;&lt;pre tabindex=&#34;0&#34; style=&#34;color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;&#34;&gt;&lt;code class=&#34;language-bash&#34; data-lang=&#34;bash&#34;&gt;&lt;span style=&#34;display:flex;&#34;&gt;&lt;span&gt;&lt;span style=&#34;color:#75715e&#34;&gt;# Set primary + VIP and gateway&lt;/span&gt;
-&lt;/span&gt;&lt;/span&gt;&lt;span style=&#34;display:flex;&#34;&gt;&lt;span&gt;sudo nmcli connection modify &lt;span style=&#34;color:#e6db74&#34;&gt;&amp;#34;Wired connection 1&amp;#34;&lt;/span&gt; &lt;span style=&#34;color:#ae81ff&#34;&gt;\
-&lt;/span&gt;&lt;/span&gt;&lt;/span&gt;&lt;span style=&#34;display:flex;&#34;&gt;&lt;span&gt;&lt;span style=&#34;color:#ae81ff&#34;&gt;&lt;/span&gt;  ipv4.addresses &lt;span style=&#34;color:#e6db74&#34;&gt;&amp;#34;192.168.8.201/24,192.168.8.205/32&amp;#34;&lt;/span&gt; &lt;span style=&#34;color:#ae81ff&#34;&gt;\
-&lt;/span&gt;&lt;/span&gt;&lt;/span&gt;&lt;span style=&#34;display:flex;&#34;&gt;&lt;span&gt;&lt;span style=&#34;color:#ae81ff&#34;&gt;&lt;/span&gt;  ipv4.gateway &lt;span style=&#34;color:#e6db74&#34;&gt;&amp;#34;192.168.8.1&amp;#34;&lt;/span&gt; &lt;span style=&#34;color:#ae81ff&#34;&gt;\
-&lt;/span&gt;&lt;/span&gt;&lt;/span&gt;&lt;span style=&#34;display:flex;&#34;&gt;&lt;span&gt;&lt;span style=&#34;color:#ae81ff&#34;&gt;&lt;/span&gt;  ipv4.method manual
-&lt;/span&gt;&lt;/span&gt;&lt;span style=&#34;display:flex;&#34;&gt;&lt;span&gt;
-&lt;/span&gt;&lt;/span&gt;&lt;span style=&#34;display:flex;&#34;&gt;&lt;span&gt;&lt;span style=&#34;color:#75715e&#34;&gt;# Apply immediately&lt;/span&gt;
-&lt;/span&gt;&lt;/span&gt;&lt;span style=&#34;display:flex;&#34;&gt;&lt;span&gt;sudo nmcli connection down &lt;span style=&#34;color:#e6db74&#34;&gt;&amp;#34;Wired connection 1&amp;#34;&lt;/span&gt;
-&lt;/span&gt;&lt;/span&gt;&lt;span style=&#34;display:flex;&#34;&gt;&lt;span&gt;sudo nmcli connection up &lt;span style=&#34;color:#e6db74&#34;&gt;&amp;#34;Wired connection 1&amp;#34;&lt;/span&gt;
-&lt;/span&gt;&lt;/span&gt;&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;&lt;h2 id=&#34;disable-swap-and-set-cgroup-drivers-for-kubelet-compatibility&#34;&gt;Disable swap and set cgroup drivers for kubelet compatibility.&lt;/h2&gt;
-&lt;p&gt;Kubernetes requires swap disabled by default (NoSwap behavior) for predictable pod scheduling and to avoid OOM issues.
-Disable swap and configure the kubelet cgroup driver to systemd on control plane nodes to ensure kubelet compatibility and prevent preflight errors during kubeadm init or kubeadm join&lt;/p&gt;</description>
+      <description>&lt;p&gt;This blog walks though how I went about setting up kubeadm on my primary control plane node. This concerns setting up the control plane nodes which run a fresh installation of Pi OS. I&amp;rsquo;ve already reserved IPs for all Raspberry Pis on my router. For my homelab static IPs will ensure stable Kubernetes node communication, ExternalDNS updates, and Harbor registry access without lease expiration disruptions. If you want to see the polished end result, the install script is located &lt;a href=&#34;https://github.com/dtlight/homelab/blob/main/runbooks/k8sSetup/install-k8s.sh&#34;&gt;here&lt;/a&gt;.&lt;/p&gt;</description>
+      <content:encoded><![CDATA[<p>This blog walks though how I went about setting up kubeadm on my primary control plane node. This concerns setting up the control plane nodes which run a fresh installation of Pi OS. I&rsquo;ve already reserved IPs for all Raspberry Pis on my router. For my homelab static IPs will ensure stable Kubernetes node communication, ExternalDNS updates, and Harbor registry access without lease expiration disruptions. If you want to see the polished end result, the install script is located <a href="https://github.com/dtlight/homelab/blob/main/runbooks/k8sSetup/install-k8s.sh">here</a>.</p>
+<h2 id="create-staic-ips-for-cp-node--kube-vip">Create staic IPs for CP node + kube vip:</h2>
+<div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-bash" data-lang="bash"><span style="display:flex;"><span><span style="color:#75715e"># Set primary + VIP and gateway</span>
+</span></span><span style="display:flex;"><span>sudo nmcli connection modify <span style="color:#e6db74">&#34;Wired connection 1&#34;</span> <span style="color:#ae81ff">\
+</span></span></span><span style="display:flex;"><span><span style="color:#ae81ff"></span>  ipv4.addresses <span style="color:#e6db74">&#34;192.168.8.201/24,192.168.8.205/32&#34;</span> <span style="color:#ae81ff">\
+</span></span></span><span style="display:flex;"><span><span style="color:#ae81ff"></span>  ipv4.gateway <span style="color:#e6db74">&#34;192.168.8.1&#34;</span> <span style="color:#ae81ff">\
+</span></span></span><span style="display:flex;"><span><span style="color:#ae81ff"></span>  ipv4.method manual
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span><span style="color:#75715e"># Apply immediately</span>
+</span></span><span style="display:flex;"><span>sudo nmcli connection down <span style="color:#e6db74">&#34;Wired connection 1&#34;</span>
+</span></span><span style="display:flex;"><span>sudo nmcli connection up <span style="color:#e6db74">&#34;Wired connection 1&#34;</span>
+</span></span></code></pre></div><h2 id="disable-swap-and-set-cgroup-drivers-for-kubelet-compatibility">Disable swap and set cgroup drivers for kubelet compatibility.</h2>
+<p>Kubernetes requires swap disabled by default (NoSwap behavior) for predictable pod scheduling and to avoid OOM issues.
+Disable swap and configure the kubelet cgroup driver to systemd on control plane nodes to ensure kubelet compatibility and prevent preflight errors during kubeadm init or kubeadm join</p>
+<p>Disable Swap:</p>
+<div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-bash" data-lang="bash"><span style="display:flex;"><span><span style="color:#75715e">#Temporarily disable all swap</span>
+</span></span><span style="display:flex;"><span>sudo swapoff -a
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span><span style="color:#75715e"># Make it permanent by commenting out swap entries in /etc/fstab: </span>
+</span></span><span style="display:flex;"><span>sudo sed -i <span style="color:#e6db74">&#39;/ swap / s/^/#/&#39;</span> /etc/fstab
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span><span style="color:#75715e"># Verify </span>
+</span></span><span style="display:flex;"><span>free -h <span style="color:#75715e">#(should show 0 swap)</span>
+</span></span><span style="display:flex;"><span>swapon --show <span style="color:#75715e">#(no output).​</span>
+</span></span></code></pre></div><h2 id="installing-kube-packages-on-debian">Installing kube packages on Debian</h2>
+<div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-bash" data-lang="bash"><span style="display:flex;"><span><span style="color:#75715e">### 1. Update package list and install required dependencies</span>
+</span></span><span style="display:flex;"><span>sudo apt-get update
+</span></span><span style="display:flex;"><span>sudo apt-get install -y apt-transport-https ca-certificates curl 
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span><span style="color:#75715e">### 2. Download and add the Kubernetes public signing key </span>
+</span></span><span style="display:flex;"><span>sudo mkdir -p /etc/apt/keyrings
+</span></span><span style="display:flex;"><span>curl -fsSL https://pkgs.k8s.io/core:/stable:/v1.34/deb/Release.key | sudo gpg --dearmor -o /etc/apt/keyrings/kubernetes-apt-keyring.gpg
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span><span style="color:#75715e">### 3. Add the Kubernetes apt repository</span>
+</span></span><span style="display:flex;"><span>echo <span style="color:#e6db74">&#34;deb [signed-by=/etc/apt/keyrings/kubernetes-apt-keyring.gpg] https://pkgs.k8s.io/core:/stable:/v1.34/deb/ /&#34;</span> | sudo tee /etc/apt/sources.list.d/kubernetes.list
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span><span style="color:#75715e">### 4. Update package index and install kubeadm, kubelet, and kubectl</span>
+</span></span><span style="display:flex;"><span>sudo apt-get update
+</span></span><span style="display:flex;"><span>sudo apt-get install -y kubeadm kubelet kubectl
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span><span style="color:#75715e">### 5. Pin the installed packages to prevent unintended upgrades</span>
+</span></span></code></pre></div><p>This one&rsquo;s optional but personally i&rsquo;d recommend it to avoid any of the installed k8s packages being upgraded automatically, where bad things like breaking changes can happen. Kubernetes components require careful version management because upgrading them could cause compatibility issues or disrupt cluster stability.</p>
+<div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-bash" data-lang="bash"><span style="display:flex;"><span>sudo apt-mark hold kubeadm kubelet kubectl
+</span></span></code></pre></div><h2 id="install-container-runtime-containerd">Install container runtime (containerd).</h2>
+<p>Match the kubelet cgroup driver to the container runtime. After deliberating between CRI-O and containerd I went with the latter, there isn&rsquo;t a massive difference between the two as both adhere to the Open Container Initiative.</p>
+<p>Add Containerd Repository</p>
+<div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-bash" data-lang="bash"><span style="display:flex;"><span>sudo apt-get update <span style="color:#f92672">&amp;&amp;</span> sudo apt-get install -y ca-certificates curl gpg
+</span></span><span style="display:flex;"><span>sudo install -m <span style="color:#ae81ff">0755</span> -d /etc/apt/keyrings
+</span></span><span style="display:flex;"><span>curl -fsSL https://download.docker.com/linux/debian/gpg | sudo gpg --dearmor -o /etc/apt/keyrings/docker.gpg
+</span></span><span style="display:flex;"><span>sudo chmod a+r /etc/apt/keyrings/docker.gpg
+</span></span><span style="display:flex;"><span>echo <span style="color:#e6db74">&#34;deb [arch=</span><span style="color:#66d9ef">$(</span>dpkg --print-architecture<span style="color:#66d9ef">)</span><span style="color:#e6db74"> signed-by=/etc/apt/keyrings/docker.gpg] https://download.docker.com/linux/debian </span><span style="color:#66d9ef">$(</span>. /etc/os-release <span style="color:#f92672">&amp;&amp;</span> echo <span style="color:#e6db74">&#34;</span>$VERSION_CODENAME<span style="color:#e6db74">&#34;</span><span style="color:#66d9ef">)</span><span style="color:#e6db74"> stable&#34;</span> | sudo tee /etc/apt/sources.list.d/docker.list &gt; /dev/null
+</span></span><span style="display:flex;"><span>sudo apt-get update
+</span></span></code></pre></div><p>The sudo install -m 0755 -d /etc/apt/keyrings command creates the APT keyrings directory securely with specific permissions.​</p>
+<p><code>sudo install</code> uses install (instead of mkdir) to create directories atomically (avoids race conditions) and set ownership/permissions in one step.​</p>
+<p>It&rsquo;s also more reliable than mkdir -p for package manager scripts.​</p>
+<p><code>-m 0755</code> sets permissions: owner (root) rwx (7), group rx (5), others rx (5).​</p>
+<p>Directory executable (x) needed for traversal; readable (r) for APT to access GPG keys inside.​</p>
+<p><code>-d</code> Creates directory (not a file)—equivalent to mkdir -p but with permissions.​</p>
+<p><code>/etc/apt/keyrings</code> Standard Debian/Ubuntu location for modern GPG keys (APT 1.4+ secure keyring format).</p>
+<p><code>chmod a+r</code> makes the generated docker.gpg world-readable for APT</p>
+<p>If no errors then install containerd with:</p>
+<div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-bash" data-lang="bash"><span style="display:flex;"><span>sudo apt-get install -y containerd.io
+</span></span><span style="display:flex;"><span>sudo mkdir -p /etc/containerd
+</span></span><span style="display:flex;"><span>containerd config default | sudo tee /etc/containerd/config.toml
+</span></span><span style="display:flex;"><span>sudo sed -i <span style="color:#e6db74">&#39;s/SystemdCgroup = false/SystemdCgroup = true/g&#39;</span> /etc/containerd/config.toml
+</span></span><span style="display:flex;"><span>sudo systemctl restart containerd
+</span></span><span style="display:flex;"><span>sudo systemctl enable containerd
+</span></span></code></pre></div><p>The <code>sudo sed -i 's/SystemdCgroup = false/SystemdCgroup = true/g' /etc/containerd/config.toml</code> command edits the containerd config file to enable systemd cgroup support.​</p>
+<p><code>sudo sed</code> Runs sed (stream editor) with root privileges to modify system config.​</p>
+<p><code>-i</code> In-place edit: Modifies the file directly.​</p>
+<p><code>s/old/new/g</code> Substitute command: s = substitute, first <code>/</code> delimits pattern/replacement. <code>SystemdCgroup = false</code> is the search pattern (exact match from default config.toml) and</p>
+<p><code>SystemdCgroup = true</code> the replacement text.</p>
+<p><code>g</code> global flag (replace ALL occurrences, though there&rsquo;s only one).​</p>
+<p><code>/etc/containerd/config.toml</code> Target file generated by containerd config default.​</p>
+<p>Why This Change?
+Default config: SystemdCgroup = false (uses legacy cgroupfs).​
+Kubernetes requires: SystemdCgroup = true to match kubelet&rsquo;s &ndash;cgroup-driver=systemd.​
+Mismatch causes: Kubelet startup failures with &ldquo;cgroup driver mismatch&rdquo; errors.</p>
+<p>Verify:</p>
+<div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-bash" data-lang="bash"><span style="display:flex;"><span>david@cp1:~ $ sudo ctr version
+</span></span><span style="display:flex;"><span>Client:
+</span></span><span style="display:flex;"><span>  Version:  v2.2.0
+</span></span><span style="display:flex;"><span>  Revision: 1c4457e00facac03ce1d75f7b6777a7a851e5c41
+</span></span><span style="display:flex;"><span>  Go version: go1.24.9
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span>Server:
+</span></span><span style="display:flex;"><span>  Version:  v2.2.0
+</span></span><span style="display:flex;"><span>  Revision: 1c4457e00facac03ce1d75f7b6777a7a851e5c41
+</span></span><span style="display:flex;"><span>  UUID: 5027141d-e52c-4f81-afac-bed17eee3546
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span>david@cp1:~ $ sudo systemctl status containerd
+</span></span><span style="display:flex;"><span>● containerd.service - containerd container runtime
+</span></span><span style="display:flex;"><span>     Loaded: loaded <span style="color:#f92672">(</span>/usr/lib/systemd/system/containerd.service; enabled; preset: enabled<span style="color:#f92672">)</span>
+</span></span><span style="display:flex;"><span>     Active: active <span style="color:#f92672">(</span>running<span style="color:#f92672">)</span> since Wed 2025-11-12 13:22:35 GMT; 2min 25s ago
+</span></span><span style="display:flex;"><span> Invocation: b1677e14c9234950ba6965c33d006730
+</span></span><span style="display:flex;"><span>       Docs: https://containerd.io
+</span></span><span style="display:flex;"><span>   Main PID: <span style="color:#ae81ff">2777</span> <span style="color:#f92672">(</span>containerd<span style="color:#f92672">)</span>
+</span></span><span style="display:flex;"><span>      Tasks: <span style="color:#ae81ff">10</span>
+</span></span><span style="display:flex;"><span>        CPU: 117ms
+</span></span><span style="display:flex;"><span>     CGroup: /system.slice/containerd.service
+</span></span></code></pre></div><h2 id="setup-kube-vip">Setup kube-vip</h2>
+<p>For high availability with multiple control planes, I will use kube-vip for virtual IP. I&rsquo;ve opted for this over an external load balancer because I don&rsquo;t need strict separation between control plane and load blanacer. Also I want to avoid cloud loadbalancer costs and so prefer a free, open‑source solution I can implement on prem. I also don&rsquo;t want to dedicate a whole raspberry pi to act as a loadbalancer as I prioritise keeping my remaining Pis for worker nodes.</p>
+<p>Following <a href="https://kube-vip.io/docs/installation/static/">kube-vip documentation</a>:</p>
+<p>Static Pods are Kubernetes Pods that are run by the kubelet on a single node and are not managed by the Kubernetes cluster itself. This means that whilst the Pod can appear within Kubernetes, it can&rsquo;t make use of a variety of Kubernetes functionality (such as the Kubernetes token or ConfigMap resources). The static Pod approach is primarily required for kubeadm as this is due to the sequence of actions performed by kubeadm. Ideally, we want kube-vip to be part of the Kubernetes cluster, but for various bits of functionality we also need kube-vip to provide a HA virtual IP as part of the installation.</p>
+<h3 id="on-cp1">On cp1:</h3>
+<ol>
+<li>Set kube-vip variables</li>
+</ol>
+<div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-bash" data-lang="bash"><span style="display:flex;"><span>export VIP<span style="color:#f92672">=</span>192.168.8.205
+</span></span><span style="display:flex;"><span>export INTERFACE<span style="color:#f92672">=</span>eth0
+</span></span></code></pre></div><ol start="2">
+<li>Set kube-vip version and alias for containerd:</li>
+</ol>
+<p>Then:</p>
+<div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-bash" data-lang="bash"><span style="display:flex;"><span>export KVVERSION<span style="color:#f92672">=</span>v1.0.2 
+</span></span></code></pre></div><p>Now define the containerd alias:</p>
+<div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-bash" data-lang="bash"><span style="display:flex;"><span>alias kube-vip<span style="color:#f92672">=</span><span style="color:#e6db74">&#34;sudo ctr image pull ghcr.io/kube-vip/kube-vip:</span><span style="color:#e6db74">${</span>KVVERSION<span style="color:#e6db74">}</span><span style="color:#e6db74">; sudo ctr run --rm --net-host ghcr.io/kube-vip/kube-vip:</span><span style="color:#e6db74">${</span>KVVERSION<span style="color:#e6db74">}</span><span style="color:#e6db74"> vip /kube-vip&#34;</span>
+</span></span></code></pre></div><ol start="3">
+<li>Generate the static pod manifest (ARP mode)</li>
+</ol>
+<p><strong>ARP vs BGP</strong></p>
+<table>
+  <thead>
+      <tr>
+          <th>Mode</th>
+          <th>Network Req</th>
+          <th>Router Config</th>
+          <th>Use Case</th>
+      </tr>
+  </thead>
+  <tbody>
+      <tr>
+          <td><strong>ARP</strong></td>
+          <td>Same L2 (VLAN)</td>
+          <td>None</td>
+          <td>Pi cluster, homelab</td>
+      </tr>
+      <tr>
+          <td><strong>BGP</strong></td>
+          <td>L3 routing</td>
+          <td>BGP peering</td>
+          <td>Multi-subnet, data center</td>
+      </tr>
+  </tbody>
+</table>
+<p>So or my setup (eth0, single subnet 192.168.8.0/24), ARP is right. The &ndash;arp flag in the manifest command enables this mode.</p>
+<div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-bash" data-lang="bash"><span style="display:flex;"><span>sudo mkdir -p /etc/kubernetes/manifests
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span>kube-vip manifest pod <span style="color:#ae81ff">\
+</span></span></span><span style="display:flex;"><span><span style="color:#ae81ff"></span>  --interface $INTERFACE <span style="color:#ae81ff">\
+</span></span></span><span style="display:flex;"><span><span style="color:#ae81ff"></span>  --address $VIP <span style="color:#ae81ff">\
+</span></span></span><span style="display:flex;"><span><span style="color:#ae81ff"></span>  --controlplane <span style="color:#ae81ff">\
+</span></span></span><span style="display:flex;"><span><span style="color:#ae81ff"></span>  --services <span style="color:#ae81ff">\
+</span></span></span><span style="display:flex;"><span><span style="color:#ae81ff"></span>  --arp <span style="color:#ae81ff">\
+</span></span></span><span style="display:flex;"><span><span style="color:#ae81ff"></span>  --leaderElection | sudo tee /etc/kubernetes/manifests/kube-vip.yaml
+</span></span></code></pre></div><p><strong>Kubelet will:</strong></p>
+<ul>
+<li>Read /etc/kubernetes/manifests/kube-vip.yaml.</li>
+<li>Start the kube-vip pod.</li>
+<li>kube-vip will announce 192.168.8.205 on eth0 via ARP.</li>
+</ul>
+<p>After init:</p>
+<div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-bash" data-lang="bash"><span style="display:flex;"><span>ip addr show eth0 | grep 192.168.8.205   <span style="color:#75715e"># VIP present</span>
+</span></span></code></pre></div><p>Then proceed to <code>kubeadm init --control-plane-endpoint &quot;192.168.8.205:6443&quot;</code></p>
+<div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-bash" data-lang="bash"><span style="display:flex;"><span>david@cp1:/ $ sudo kubeadm init --control-plane-endpoint <span style="color:#e6db74">&#34;192.168.8.205:6443&#34;</span>
+</span></span><span style="display:flex;"><span><span style="color:#f92672">[</span>init<span style="color:#f92672">]</span> Using Kubernetes version: v1.34.3
+</span></span><span style="display:flex;"><span><span style="color:#f92672">[</span>preflight<span style="color:#f92672">]</span> Running pre-flight checks
+</span></span><span style="display:flex;"><span>	<span style="color:#f92672">[</span>WARNING Swap<span style="color:#f92672">]</span>: swap is supported <span style="color:#66d9ef">for</span> cgroup v2 only. The kubelet must be properly configured to use swap. Please refer to https://kubernetes.io/docs/concepts/architecture/nodes/#swap-memory, or disable swap on the node
+</span></span><span style="display:flex;"><span><span style="color:#f92672">[</span>preflight<span style="color:#f92672">]</span> The system verification failed. Printing the output from the verification:
+</span></span><span style="display:flex;"><span>KERNEL_VERSION: 6.12.47+rpt-rpi-2712
+</span></span><span style="display:flex;"><span>CONFIG_NAMESPACES: enabled
+</span></span><span style="display:flex;"><span>CONFIG_NET_NS: enabled
+</span></span><span style="display:flex;"><span>CONFIG_PID_NS: enabled
+</span></span><span style="display:flex;"><span>CONFIG_IPC_NS: enabled
+</span></span><span style="display:flex;"><span>CONFIG_UTS_NS: enabled
+</span></span><span style="display:flex;"><span>CONFIG_CGROUPS: enabled
+</span></span><span style="display:flex;"><span>CONFIG_CPUSETS: enabled
+</span></span><span style="display:flex;"><span>CONFIG_MEMCG: enabled
+</span></span><span style="display:flex;"><span>CONFIG_INET: enabled
+</span></span><span style="display:flex;"><span>CONFIG_EXT4_FS: enabled
+</span></span><span style="display:flex;"><span>CONFIG_PROC_FS: enabled
+</span></span><span style="display:flex;"><span>CONFIG_NETFILTER_XT_TARGET_REDIRECT: enabled <span style="color:#f92672">(</span>as module<span style="color:#f92672">)</span>
+</span></span><span style="display:flex;"><span>CONFIG_NETFILTER_XT_MATCH_COMMENT: enabled <span style="color:#f92672">(</span>as module<span style="color:#f92672">)</span>
+</span></span><span style="display:flex;"><span>CONFIG_FAIR_GROUP_SCHED: enabled
+</span></span><span style="display:flex;"><span>CONFIG_OVERLAY_FS: enabled <span style="color:#f92672">(</span>as module<span style="color:#f92672">)</span>
+</span></span><span style="display:flex;"><span>CONFIG_AUFS_FS: not set - Required <span style="color:#66d9ef">for</span> aufs.
+</span></span><span style="display:flex;"><span>CONFIG_BLK_DEV_DM: enabled <span style="color:#f92672">(</span>as module<span style="color:#f92672">)</span>
+</span></span><span style="display:flex;"><span>CONFIG_CFS_BANDWIDTH: enabled
+</span></span><span style="display:flex;"><span>CONFIG_SECCOMP: enabled
+</span></span><span style="display:flex;"><span>CONFIG_SECCOMP_FILTER: enabled
+</span></span><span style="display:flex;"><span>OS: Linux
+</span></span><span style="display:flex;"><span>CGROUPS_CPU: enabled
+</span></span><span style="display:flex;"><span>CGROUPS_CPUSET: enabled
+</span></span><span style="display:flex;"><span>CGROUPS_DEVICES: enabled
+</span></span><span style="display:flex;"><span>CGROUPS_FREEZER: enabled
+</span></span><span style="display:flex;"><span>CGROUPS_MEMORY: missing
+</span></span><span style="display:flex;"><span>CGROUPS_PIDS: enabled
+</span></span><span style="display:flex;"><span>CGROUPS_HUGETLB: missing
+</span></span><span style="display:flex;"><span>CGROUPS_IO: enabled
+</span></span><span style="display:flex;"><span>	<span style="color:#f92672">[</span>WARNING SystemVerification<span style="color:#f92672">]</span>: missing optional cgroups: hugetlb
+</span></span><span style="display:flex;"><span><span style="color:#f92672">[</span>preflight<span style="color:#f92672">]</span> Some fatal errors occurred:
+</span></span><span style="display:flex;"><span>	<span style="color:#f92672">[</span>ERROR SystemVerification<span style="color:#f92672">]</span>: missing required cgroups: memory
+</span></span><span style="display:flex;"><span>	<span style="color:#f92672">[</span>ERROR FileContent--proc-sys-net-ipv4-ip_forward<span style="color:#f92672">]</span>: /proc/sys/net/ipv4/ip_forward contents are not set to <span style="color:#ae81ff">1</span>
+</span></span><span style="display:flex;"><span><span style="color:#f92672">[</span>preflight<span style="color:#f92672">]</span> If you know what you are doing, you can make a check non-fatal with <span style="color:#e6db74">`</span>--ignore-preflight-errors<span style="color:#f92672">=</span>...<span style="color:#e6db74">`</span>
+</span></span><span style="display:flex;"><span>error: error execution phase preflight: preflight checks failed
+</span></span></code></pre></div><p>From the terminal output clearly several things are broken.
+✅ CGROUPS_MEMORY: missing ← FIXED by cmdline.txt
+✅ CGROUPS_PIDS: enabled
+✅ CGROUPS_CPUSET: enabled<br>
+❌ aufs: not set ← Warning only
+❌ hugetlb: missing ← Warning only</p>
+<p>Note: Warnings (aufs, hugetlb) are non-fatal errors. In my Raspberry Pi cluster, overlayfs handles container storage and I&rsquo;m not targeting hugepage workloads, so missing aufs and hugetlb is practically harmless and correctly reported as warnings, not fatal errors.</p>
+<p>To fix the remaining errors:​</p>
+<ol>
+<li>Enabling IP Forwarding fixes [ERROR FileContent&ndash;proc-sys-net-ipv4-ip_forward]</li>
+</ol>
+<div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-bash" data-lang="bash"><span style="display:flex;"><span>sudo sysctl net.ipv4.ip_forward<span style="color:#f92672">=</span><span style="color:#ae81ff">1</span>
+</span></span><span style="display:flex;"><span>echo <span style="color:#e6db74">&#39;net.ipv4.ip_forward=1&#39;</span> | sudo tee -a /etc/sysctl.conf
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span><span style="color:#75715e">#Create a dedicated override in /etc/sysctl.d which is applied after the base files:</span>
+</span></span><span style="display:flex;"><span>echo <span style="color:#e6db74">&#39;net.ipv4.ip_forward=1&#39;</span> | sudo tee /etc/sysctl.d/99-ipforward.conf
+</span></span><span style="display:flex;"><span>sudo sysctl --system
+</span></span></code></pre></div><p><code>cat /proc/sys/net/ipv4/ip_forward</code> should show: 1</p>
+<ol start="2">
+<li>Enable Required Cgroups (Memory + Hugepages)</li>
+</ol>
+<div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-bash" data-lang="bash"><span style="display:flex;"><span>sudo vi /boot/firmware/cmdline.txt
+</span></span></code></pre></div><p>Append these parametes:</p>
+<div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-bash" data-lang="bash"><span style="display:flex;"><span>systemd.unified_cgroup_hierarchy<span style="color:#f92672">=</span><span style="color:#ae81ff">1</span> cgroup_enable<span style="color:#f92672">=</span>memory cgroup_memory<span style="color:#f92672">=</span><span style="color:#ae81ff">1</span> cgroup_enable<span style="color:#f92672">=</span>hugetlb
+</span></span></code></pre></div><p>Reboot</p>
+<p>Confirm c group is active:</p>
+<div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-bash" data-lang="bash"><span style="display:flex;"><span>mount | grep cgroup
+</span></span></code></pre></div><p>On many modern Pi OS builds, enabling systemd.unified_cgroup_hierarchy=1 gives you cgroup v2 only, and the old /proc/cgroups interface does not list memory the way kubeadm expects, even though memory accounting works via v2. Kubeadm’s SystemVerification preflight is written with cgroup v1 in mind; on cgroup v2 it can wrongly report CGROUPS_MEMORY: missing even if memory cgroups are actually in place via v2. Kubernetes documentation explicitly allows bypassing such checks with: <code>--ignore-preflight-errors=SystemVerification</code></p>
+<p>Now to try kubeadm init again</p>
+<div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-bash" data-lang="bash"><span style="display:flex;"><span>sudo kubeadm init <span style="color:#ae81ff">\
+</span></span></span><span style="display:flex;"><span><span style="color:#ae81ff"></span>  --control-plane-endpoint <span style="color:#e6db74">&#34;192.168.8.205:6443&#34;</span> <span style="color:#ae81ff">\
+</span></span></span><span style="display:flex;"><span><span style="color:#ae81ff"></span>  --ignore-preflight-errors<span style="color:#f92672">=</span>SystemVerification <span style="color:#ae81ff">\
+</span></span></span><span style="display:flex;"><span><span style="color:#ae81ff"></span>  --pod-network-cidr<span style="color:#f92672">=</span>10.244.0.0/16
+</span></span></code></pre></div><p>Which gives:</p>
+<div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-bash" data-lang="bash"><span style="display:flex;"><span>david@cp1:~ $ sudo kubeadm init <span style="color:#ae81ff">\
+</span></span></span><span style="display:flex;"><span><span style="color:#ae81ff"></span>  --control-plane-endpoint <span style="color:#e6db74">&#34;192.168.8.205:6443&#34;</span> <span style="color:#ae81ff">\
+</span></span></span><span style="display:flex;"><span><span style="color:#ae81ff"></span>  --ignore-preflight-errors<span style="color:#f92672">=</span>SystemVerification <span style="color:#ae81ff">\
+</span></span></span><span style="display:flex;"><span><span style="color:#ae81ff"></span>  --pod-network-cidr<span style="color:#f92672">=</span>10.244.0.0/16
+</span></span><span style="display:flex;"><span>W1214 23:40:13.425104    <span style="color:#ae81ff">2040</span> version.go:108<span style="color:#f92672">]</span> could not fetch a Kubernetes version from the internet: unable to get URL <span style="color:#e6db74">&#34;https://dl.k8s.io/release/stable-1.txt&#34;</span>: Get <span style="color:#e6db74">&#34;https://dl.k8s.io/release/stable-1.txt&#34;</span>: dial tcp: lookup dl.k8s.io on <span style="color:#f92672">[</span>::1<span style="color:#f92672">]</span>:53: read udp <span style="color:#f92672">[</span>::1<span style="color:#f92672">]</span>:59902-&gt;<span style="color:#f92672">[</span>::1<span style="color:#f92672">]</span>:53: read: connection refused
+</span></span><span style="display:flex;"><span>W1214 23:40:13.425168    <span style="color:#ae81ff">2040</span> version.go:109<span style="color:#f92672">]</span> falling back to the local client version: v1.34.3
+</span></span><span style="display:flex;"><span><span style="color:#f92672">[</span>init<span style="color:#f92672">]</span> Using Kubernetes version: v1.34.3
+</span></span><span style="display:flex;"><span><span style="color:#f92672">[</span>preflight<span style="color:#f92672">]</span> Running pre-flight checks
+</span></span><span style="display:flex;"><span>	<span style="color:#f92672">[</span>WARNING Swap<span style="color:#f92672">]</span>: swap is supported <span style="color:#66d9ef">for</span> cgroup v2 only. The kubelet must be properly configured to use swap. Please refer to https://kubernetes.io/docs/concepts/architecture/nodes/#swap-memory, or disable swap on the node
+</span></span><span style="display:flex;"><span>	<span style="color:#f92672">[</span>WARNING SystemVerification<span style="color:#f92672">]</span>: missing optional cgroups: hugetlb
+</span></span><span style="display:flex;"><span><span style="color:#f92672">[</span>preflight<span style="color:#f92672">]</span> Pulling images required <span style="color:#66d9ef">for</span> setting up a Kubernetes cluster
+</span></span><span style="display:flex;"><span><span style="color:#f92672">[</span>preflight<span style="color:#f92672">]</span> This might take a minute or two, depending on the speed of your internet connection
+</span></span><span style="display:flex;"><span><span style="color:#f92672">[</span>preflight<span style="color:#f92672">]</span> You can also perform this action beforehand using <span style="color:#e6db74">&#39;kubeadm config images pull&#39;</span>
+</span></span><span style="display:flex;"><span><span style="color:#f92672">[</span>preflight<span style="color:#f92672">]</span> Some fatal errors occurred:
+</span></span><span style="display:flex;"><span>	<span style="color:#f92672">[</span>ERROR ImagePull<span style="color:#f92672">]</span>: failed to pull image registry.k8s.io/kube-apiserver:v1.34.3: failed to pull image registry.k8s.io/kube-apiserver:v1.34.3: failed to pull and unpack image <span style="color:#e6db74">&#34;registry.k8s.io/kube-apiserver:v1.34.3&#34;</span>: failed to resolve image: failed to <span style="color:#66d9ef">do</span> request: Head <span style="color:#e6db74">&#34;https://registry.k8s.io/v2/kube-apiserver/manifests/v1.34.3&#34;</span>: dial tcp: lookup registry.k8s.io on <span style="color:#f92672">[</span>::1<span style="color:#f92672">]</span>:53: read udp <span style="color:#f92672">[</span>::1<span style="color:#f92672">]</span>:55114-&gt;<span style="color:#f92672">[</span>::1<span style="color:#f92672">]</span>:53: read: connection refused
+</span></span><span style="display:flex;"><span>	<span style="color:#f92672">[</span>ERROR ImagePull<span style="color:#f92672">]</span>: failed to pull image registry.k8s.io/kube-controller-manager:v1.34.3: failed to pull image registry.k8s.io/kube-controller-manager:v1.34.3: failed to pull and unpack image <span style="color:#e6db74">&#34;registry.k8s.io/kube-controller-manager:v1.34.3&#34;</span>: failed to resolve image: failed to <span style="color:#66d9ef">do</span> request: Head <span style="color:#e6db74">&#34;https://registry.k8s.io/v2/kube-controller-manager/manifests/v1.34.3&#34;</span>: dial tcp: lookup registry.k8s.io on <span style="color:#f92672">[</span>::1<span style="color:#f92672">]</span>:53: read udp <span style="color:#f92672">[</span>::1<span style="color:#f92672">]</span>:32852-&gt;<span style="color:#f92672">[</span>::1<span style="color:#f92672">]</span>:53: read: connection refused
+</span></span><span style="display:flex;"><span>	<span style="color:#f92672">[</span>ERROR ImagePull<span style="color:#f92672">]</span>: failed to pull image registry.k8s.io/kube-scheduler:v1.34.3: failed to pull image registry.k8s.io/kube-scheduler:v1.34.3: failed to pull and unpack image <span style="color:#e6db74">&#34;registry.k8s.io/kube-scheduler:v1.34.3&#34;</span>: failed to resolve image: failed to <span style="color:#66d9ef">do</span> request: Head <span style="color:#e6db74">&#34;https://registry.k8s.io/v2/kube-scheduler/manifests/v1.34.3&#34;</span>: dial tcp: lookup registry.k8s.io on <span style="color:#f92672">[</span>::1<span style="color:#f92672">]</span>:53: read udp <span style="color:#f92672">[</span>::1<span style="color:#f92672">]</span>:37547-&gt;<span style="color:#f92672">[</span>::1<span style="color:#f92672">]</span>:53: read: connection refused
+</span></span><span style="display:flex;"><span>	<span style="color:#f92672">[</span>ERROR ImagePull<span style="color:#f92672">]</span>: failed to pull image registry.k8s.io/kube-proxy:v1.34.3: failed to pull image registry.k8s.io/kube-proxy:v1.34.3: failed to pull and unpack image <span style="color:#e6db74">&#34;registry.k8s.io/kube-proxy:v1.34.3&#34;</span>: failed to resolve image: failed to <span style="color:#66d9ef">do</span> request: Head <span style="color:#e6db74">&#34;https://registry.k8s.io/v2/kube-proxy/manifests/v1.34.3&#34;</span>: dial tcp: lookup registry.k8s.io on <span style="color:#f92672">[</span>::1<span style="color:#f92672">]</span>:53: read udp <span style="color:#f92672">[</span>::1<span style="color:#f92672">]</span>:51662-&gt;<span style="color:#f92672">[</span>::1<span style="color:#f92672">]</span>:53: read: connection refused
+</span></span><span style="display:flex;"><span>	<span style="color:#f92672">[</span>ERROR ImagePull<span style="color:#f92672">]</span>: failed to pull image registry.k8s.io/coredns/coredns:v1.12.1: failed to pull image registry.k8s.io/coredns/coredns:v1.12.1: failed to pull and unpack image <span style="color:#e6db74">&#34;registry.k8s.io/coredns/coredns:v1.12.1&#34;</span>: failed to resolve image: failed to <span style="color:#66d9ef">do</span> request: Head <span style="color:#e6db74">&#34;https://registry.k8s.io/v2/coredns/coredns/manifests/v1.12.1&#34;</span>: dial tcp: lookup registry.k8s.io on <span style="color:#f92672">[</span>::1<span style="color:#f92672">]</span>:53: read udp <span style="color:#f92672">[</span>::1<span style="color:#f92672">]</span>:58416-&gt;<span style="color:#f92672">[</span>::1<span style="color:#f92672">]</span>:53: read: connection refused
+</span></span><span style="display:flex;"><span>	<span style="color:#f92672">[</span>ERROR ImagePull<span style="color:#f92672">]</span>: failed to pull image registry.k8s.io/pause:3.10.1: failed to pull image registry.k8s.io/pause:3.10.1: failed to pull and unpack image <span style="color:#e6db74">&#34;registry.k8s.io/pause:3.10.1&#34;</span>: failed to resolve image: failed to <span style="color:#66d9ef">do</span> request: Head <span style="color:#e6db74">&#34;https://registry.k8s.io/v2/pause/manifests/3.10.1&#34;</span>: dial tcp: lookup registry.k8s.io on <span style="color:#f92672">[</span>::1<span style="color:#f92672">]</span>:53: read udp <span style="color:#f92672">[</span>::1<span style="color:#f92672">]</span>:44725-&gt;<span style="color:#f92672">[</span>::1<span style="color:#f92672">]</span>:53: read: connection refused
+</span></span><span style="display:flex;"><span>	<span style="color:#f92672">[</span>ERROR ImagePull<span style="color:#f92672">]</span>: failed to pull image registry.k8s.io/etcd:3.6.5-0: failed to pull image registry.k8s.io/etcd:3.6.5-0: failed to pull and unpack image <span style="color:#e6db74">&#34;registry.k8s.io/etcd:3.6.5-0&#34;</span>: failed to resolve image: failed to <span style="color:#66d9ef">do</span> request: Head <span style="color:#e6db74">&#34;https://registry.k8s.io/v2/etcd/manifests/3.6.5-0&#34;</span>: dial tcp: lookup registry.k8s.io on <span style="color:#f92672">[</span>::1<span style="color:#f92672">]</span>:53: read udp <span style="color:#f92672">[</span>::1<span style="color:#f92672">]</span>:54479-&gt;<span style="color:#f92672">[</span>::1<span style="color:#f92672">]</span>:53: read: connection refused
+</span></span><span style="display:flex;"><span><span style="color:#f92672">[</span>preflight<span style="color:#f92672">]</span> If you know what you are doing, you can make a check non-fatal with <span style="color:#e6db74">`</span>--ignore-preflight-errors<span style="color:#f92672">=</span>...<span style="color:#e6db74">`</span>
+</span></span><span style="display:flex;"><span>error: error execution phase preflight: preflight checks failed
+</span></span><span style="display:flex;"><span>To see the stack trace of this error execute with --v<span style="color:#f92672">=</span><span style="color:#ae81ff">5</span> or higher
+</span></span></code></pre></div><p>The good news is all of those new errors are DNS / network, not Kubernetes itself 🙌🏾. So now my problem is cp1 can’t resolve external hostnames, so it can’t pull images.
+Key clue: <code>lookup registry.k8s.io on [::1]:53: read udp [::1]:...: connection refused</code> which means something on my Pi configured 127.0.0.1 / ::1 as DNS, but there is no DNS server listening locally.</p>
+<h3 id="trouble-shooting-dns-issues">Trouble shooting DNS issues:</h3>
+<p>I&rsquo;ve decided to add my trouble shooting issues and solutions as they happened so you can see that it doesn&rsquo;t always go smoothly but more importantly if you have similar issues you know what might work for you.</p>
+<p>First I try:</p>
+<div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-bash" data-lang="bash"><span style="display:flex;"><span>ping -c <span style="color:#ae81ff">3</span> 8.8.8.8
+</span></span><span style="display:flex;"><span>ping -c <span style="color:#ae81ff">3</span> registry.k8s.io
+</span></span><span style="display:flex;"><span>cat /etc/resolv.conf
+</span></span></code></pre></div><p>ping 8.8.8.8 works but ping registry.k8s.io fails so routing OK, DNS broken.</p>
+<div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-bash" data-lang="bash"><span style="display:flex;"><span>PING 8.8.8.8 <span style="color:#f92672">(</span>8.8.8.8<span style="color:#f92672">)</span> 56<span style="color:#f92672">(</span>84<span style="color:#f92672">)</span> bytes of data.
+</span></span><span style="display:flex;"><span><span style="color:#ae81ff">64</span> bytes from 8.8.8.8: icmp_seq<span style="color:#f92672">=</span><span style="color:#ae81ff">1</span> ttl<span style="color:#f92672">=</span><span style="color:#ae81ff">114</span> time<span style="color:#f92672">=</span>3.92 ms
+</span></span><span style="display:flex;"><span><span style="color:#ae81ff">64</span> bytes from 8.8.8.8: icmp_seq<span style="color:#f92672">=</span><span style="color:#ae81ff">2</span> ttl<span style="color:#f92672">=</span><span style="color:#ae81ff">114</span> time<span style="color:#f92672">=</span>3.63 ms
+</span></span><span style="display:flex;"><span><span style="color:#ae81ff">64</span> bytes from 8.8.8.8: icmp_seq<span style="color:#f92672">=</span><span style="color:#ae81ff">3</span> ttl<span style="color:#f92672">=</span><span style="color:#ae81ff">114</span> time<span style="color:#f92672">=</span>3.48 ms
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span>--- 8.8.8.8 ping statistics ---
+</span></span><span style="display:flex;"><span><span style="color:#ae81ff">3</span> packets transmitted, <span style="color:#ae81ff">3</span> received, 0% packet loss, time 2004ms
+</span></span><span style="display:flex;"><span>rtt min/avg/max/mdev <span style="color:#f92672">=</span> 3.477/3.676/3.922/0.184 ms
+</span></span><span style="display:flex;"><span>ping: registry.k8s.io: Temporary failure in name resolution
+</span></span><span style="display:flex;"><span><span style="color:#75715e"># Generated by NetworkManager</span>
+</span></span></code></pre></div><p>DNS is completely unset: /etc/resolv.conf only has the comment “# Generated by NetworkManager”, with no nameserver lines. That’s why my name resolution fails.</p>
+<p>To resolve I&rsquo;ll tell “Wired connection 1” to use real DNS servers and not rely on auto-DNS:</p>
+<div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-bash" data-lang="bash"><span style="display:flex;"><span><span style="color:#75715e"># Set router + Google DNS, and ignore DHCP-provided DNS</span>
+</span></span><span style="display:flex;"><span>sudo nmcli connection modify <span style="color:#e6db74">&#34;Wired connection 1&#34;</span> <span style="color:#ae81ff">\
+</span></span></span><span style="display:flex;"><span><span style="color:#ae81ff"></span>  ipv4.dns <span style="color:#e6db74">&#34;192.168.8.1,8.8.8.8&#34;</span> <span style="color:#ae81ff">\
+</span></span></span><span style="display:flex;"><span><span style="color:#ae81ff"></span>  ipv4.ignore-auto-dns yes
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span>sudo nmcli connection down <span style="color:#e6db74">&#34;Wired connection 1&#34;</span>
+</span></span><span style="display:flex;"><span>sudo nmcli connection up <span style="color:#e6db74">&#34;Wired connection 1&#34;</span>
+</span></span></code></pre></div><p>running cat /etc/resolv.conf returns:</p>
+<div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-bash" data-lang="bash"><span style="display:flex;"><span>david@cp1:~ $ cat /etc/resolv.conf
+</span></span><span style="display:flex;"><span><span style="color:#75715e"># Generated by NetworkManager</span>
+</span></span><span style="display:flex;"><span>nameserver 192.168.8.1
+</span></span><span style="display:flex;"><span>nameserver 8.8.8.8<span style="color:#e6db74">```</span>
+</span></span></code></pre></div><p>and pinging registry.k8s.io gives</p>
+<div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-bash" data-lang="bash"><span style="display:flex;"><span>david@cp1:~ $ ping -c <span style="color:#ae81ff">3</span> registry.k8s.io
+</span></span><span style="display:flex;"><span>PING registry.k8s.io <span style="color:#f92672">(</span>34.96.108.209<span style="color:#f92672">)</span> 56<span style="color:#f92672">(</span>84<span style="color:#f92672">)</span> bytes of data.
+</span></span><span style="display:flex;"><span><span style="color:#ae81ff">64</span> bytes from 209.108.96.34.bc.googleusercontent.com <span style="color:#f92672">(</span>34.96.108.209<span style="color:#f92672">)</span>: icmp_seq<span style="color:#f92672">=</span><span style="color:#ae81ff">1</span> ttl<span style="color:#f92672">=</span><span style="color:#ae81ff">114</span> time<span style="color:#f92672">=</span>3.15 ms
+</span></span><span style="display:flex;"><span><span style="color:#ae81ff">64</span> bytes from 209.108.96.34.bc.googleusercontent.com <span style="color:#f92672">(</span>34.96.108.209<span style="color:#f92672">)</span>: icmp_seq<span style="color:#f92672">=</span><span style="color:#ae81ff">2</span> ttl<span style="color:#f92672">=</span><span style="color:#ae81ff">114</span> time<span style="color:#f92672">=</span>2.72 ms
+</span></span><span style="display:flex;"><span><span style="color:#ae81ff">64</span> bytes from 209.108.96.34.bc.googleusercontent.com <span style="color:#f92672">(</span>34.96.108.209<span style="color:#f92672">)</span>: icmp_seq<span style="color:#f92672">=</span><span style="color:#ae81ff">3</span> ttl<span style="color:#f92672">=</span><span style="color:#ae81ff">114</span> time<span style="color:#f92672">=</span>3.08 ms
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span>--- registry.k8s.io ping statistics ---
+</span></span><span style="display:flex;"><span><span style="color:#ae81ff">3</span> packets transmitted, <span style="color:#ae81ff">3</span> received, 0% packet loss, time 2003ms
+</span></span><span style="display:flex;"><span>rtt min/avg/max/mdev <span style="color:#f92672">=</span> 2.723/2.986/3.151/0.187 ms
+</span></span></code></pre></div><p>Problem solved 👍🏾 Now to retry initialising kubeadm</p>
+<div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-bash" data-lang="bash"><span style="display:flex;"><span>sudo kubeadm init <span style="color:#ae81ff">\
+</span></span></span><span style="display:flex;"><span><span style="color:#ae81ff"></span>  --control-plane-endpoint <span style="color:#e6db74">&#34;192.168.8.205:6443&#34;</span> <span style="color:#ae81ff">\
+</span></span></span><span style="display:flex;"><span><span style="color:#ae81ff"></span>  --pod-network-cidr<span style="color:#f92672">=</span>10.244.0.0/16 <span style="color:#ae81ff">\
+</span></span></span><span style="display:flex;"><span><span style="color:#ae81ff"></span>  --ignore-preflight-errors<span style="color:#f92672">=</span>SystemVerification
+</span></span></code></pre></div><p>after 4 minutes i get the following error mesage explaining the kublet is not healthy, so kubeadm times out waiting on its health endpoint at port 10248. (truncated):</p>
+<div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-bash" data-lang="bash"><span style="display:flex;"><span><span style="color:#f92672">[</span>kubelet-check<span style="color:#f92672">]</span> Waiting <span style="color:#66d9ef">for</span> a healthy kubelet at http://127.0.0.1:10248/healthz. This can take up to 4m0s
+</span></span><span style="display:flex;"><span><span style="color:#f92672">[</span>kubelet-check<span style="color:#f92672">]</span> The kubelet is not healthy after 4m0.000580205s
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span>Unfortunately, an error has occurred, likely caused by:
+</span></span><span style="display:flex;"><span>	- The kubelet is not running
+</span></span><span style="display:flex;"><span>	- The kubelet is unhealthy due to a misconfiguration of the node in some way <span style="color:#f92672">(</span>required cgroups disabled<span style="color:#f92672">)</span>
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span>If you are on a systemd-powered system, you can try to troubleshoot the error with the following commands:
+</span></span><span style="display:flex;"><span>	- <span style="color:#e6db74">&#39;systemctl status kubelet&#39;</span>
+</span></span><span style="display:flex;"><span>	- <span style="color:#e6db74">&#39;journalctl -xeu kubelet&#39;</span>
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span>error: error execution phase wait-control-plane: failed <span style="color:#66d9ef">while</span> waiting <span style="color:#66d9ef">for</span> the kubelet to start: The HTTP call equal to <span style="color:#e6db74">&#39;curl -sSL http://127.0.0.1:10248/healthz&#39;</span> returned error: Get <span style="color:#e6db74">&#34;http://127.0.0.1:10248/healthz&#34;</span>: context deadline exceeded
+</span></span></code></pre></div><p>Running <code>sudo systemctl status kubelet --no-pager</code> and <code>sudo journalctl -xeu kubelet --no-pager</code> will print logs.
+These logs will show whether kubelet is failing due to swap, cgroup configuration, or container runtime issues.</p>
+<div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-bash" data-lang="bash"><span style="display:flex;"><span>Dec <span style="color:#ae81ff">15</span> 01:35:15 cp1 systemd<span style="color:#f92672">[</span>1<span style="color:#f92672">]</span>: Started kubelet.service - kubelet: The Kubernetes Node Agent.
+</span></span><span style="display:flex;"><span>░░ Subject: A start job <span style="color:#66d9ef">for</span> unit kubelet.service has finished successfully
+</span></span><span style="display:flex;"><span>░░ Defined-By: systemd
+</span></span><span style="display:flex;"><span>░░ Support: https://www.debian.org/support
+</span></span><span style="display:flex;"><span>░░
+</span></span><span style="display:flex;"><span>░░ A start job <span style="color:#66d9ef">for</span> unit kubelet.service has finished successfully.
+</span></span><span style="display:flex;"><span>░░
+</span></span><span style="display:flex;"><span>░░ The job identifier is 93209.
+</span></span><span style="display:flex;"><span>Dec <span style="color:#ae81ff">15</span> 01:35:15 cp1 kubelet<span style="color:#f92672">[</span>8470<span style="color:#f92672">]</span>: Flag --pod-infra-container-image has been deprecated, will be removed in 1.35. Image garbage collector will get sandbox image information from CRI.
+</span></span><span style="display:flex;"><span>Dec <span style="color:#ae81ff">15</span> 01:35:15 cp1 kubelet<span style="color:#f92672">[</span>8470<span style="color:#f92672">]</span>: I1215 01:35:15.897376    <span style="color:#ae81ff">8470</span> server.go:213<span style="color:#f92672">]</span> <span style="color:#e6db74">&#34;--pod-infra-container-image will not be pruned by the image garbage collector in kubelet and should also be set in the remote runtime&#34;</span>
+</span></span><span style="display:flex;"><span>Dec <span style="color:#ae81ff">15</span> 01:35:15 cp1 kubelet<span style="color:#f92672">[</span>8470<span style="color:#f92672">]</span>: I1215 01:35:15.905303    <span style="color:#ae81ff">8470</span> server.go:529<span style="color:#f92672">]</span> <span style="color:#e6db74">&#34;Kubelet version&#34;</span> kubeletVersion<span style="color:#f92672">=</span><span style="color:#e6db74">&#34;v1.34.3&#34;</span>
+</span></span><span style="display:flex;"><span>Dec <span style="color:#ae81ff">15</span> 01:35:15 cp1 kubelet<span style="color:#f92672">[</span>8470<span style="color:#f92672">]</span>: I1215 01:35:15.905334    <span style="color:#ae81ff">8470</span> server.go:531<span style="color:#f92672">]</span> <span style="color:#e6db74">&#34;Golang settings&#34;</span> GOGC<span style="color:#f92672">=</span><span style="color:#e6db74">&#34;&#34;</span> GOMAXPROCS<span style="color:#f92672">=</span><span style="color:#e6db74">&#34;&#34;</span> GOTRACEBACK<span style="color:#f92672">=</span><span style="color:#e6db74">&#34;&#34;</span>
+</span></span><span style="display:flex;"><span>Dec <span style="color:#ae81ff">15</span> 01:35:15 cp1 kubelet<span style="color:#f92672">[</span>8470<span style="color:#f92672">]</span>: I1215 01:35:15.905371    <span style="color:#ae81ff">8470</span> watchdog_linux.go:95<span style="color:#f92672">]</span> <span style="color:#e6db74">&#34;Systemd watchdog is not enabled&#34;</span>
+</span></span><span style="display:flex;"><span>Dec <span style="color:#ae81ff">15</span> 01:35:15 cp1 kubelet<span style="color:#f92672">[</span>8470<span style="color:#f92672">]</span>: I1215 01:35:15.905382    <span style="color:#ae81ff">8470</span> watchdog_linux.go:137<span style="color:#f92672">]</span> <span style="color:#e6db74">&#34;Systemd watchdog is not enabled or the interval is invalid, so health checking will not be started.&#34;</span>
+</span></span><span style="display:flex;"><span>Dec <span style="color:#ae81ff">15</span> 01:35:15 cp1 kubelet<span style="color:#f92672">[</span>8470<span style="color:#f92672">]</span>: I1215 01:35:15.905727    <span style="color:#ae81ff">8470</span> server.go:956<span style="color:#f92672">]</span> <span style="color:#e6db74">&#34;Client rotation is on, will bootstrap in background&#34;</span>
+</span></span><span style="display:flex;"><span>Dec <span style="color:#ae81ff">15</span> 01:35:15 cp1 kubelet<span style="color:#f92672">[</span>8470<span style="color:#f92672">]</span>: I1215 01:35:15.908229    <span style="color:#ae81ff">8470</span> certificate_store.go:147<span style="color:#f92672">]</span> <span style="color:#e6db74">&#34;Loading cert/key pair from a file&#34;</span> filePath<span style="color:#f92672">=</span><span style="color:#e6db74">&#34;/var/lib/kubelet/pki/kubelet-client-current.pem&#34;</span>
+</span></span><span style="display:flex;"><span>Dec <span style="color:#ae81ff">15</span> 01:35:15 cp1 kubelet<span style="color:#f92672">[</span>8470<span style="color:#f92672">]</span>: I1215 01:35:15.911028    <span style="color:#ae81ff">8470</span> dynamic_cafile_content.go:161<span style="color:#f92672">]</span> <span style="color:#e6db74">&#34;Starting controller&#34;</span> name<span style="color:#f92672">=</span><span style="color:#e6db74">&#34;client-ca-bundle::/etc/kubernetes/pki/ca.crt&#34;</span>
+</span></span><span style="display:flex;"><span>Dec <span style="color:#ae81ff">15</span> 01:35:15 cp1 kubelet<span style="color:#f92672">[</span>8470<span style="color:#f92672">]</span>: I1215 01:35:15.913870    <span style="color:#ae81ff">8470</span> server.go:1423<span style="color:#f92672">]</span> <span style="color:#e6db74">&#34;Using cgroup driver setting received from the CRI runtime&#34;</span> cgroupDriver<span style="color:#f92672">=</span><span style="color:#e6db74">&#34;systemd&#34;</span>
+</span></span><span style="display:flex;"><span>Dec <span style="color:#ae81ff">15</span> 01:35:15 cp1 kubelet<span style="color:#f92672">[</span>8470<span style="color:#f92672">]</span>: W1215 01:35:15.917363    <span style="color:#ae81ff">8470</span> sysinfo.go:227<span style="color:#f92672">]</span> Found node without any CPU, nodeDir: /sys/devices/system/node/node1, number of cpuDirs 0, err: &lt;nil&gt;
+</span></span><span style="display:flex;"><span>Dec <span style="color:#ae81ff">15</span> 01:35:15 cp1 kubelet<span style="color:#f92672">[</span>8470<span style="color:#f92672">]</span>: W1215 01:35:15.917575    <span style="color:#ae81ff">8470</span> sysinfo.go:227<span style="color:#f92672">]</span> Found node without any CPU, nodeDir: /sys/devices/system/node/node2, number of cpuDirs 0, err: &lt;nil&gt;
+</span></span><span style="display:flex;"><span>Dec <span style="color:#ae81ff">15</span> 01:35:15 cp1 kubelet<span style="color:#f92672">[</span>8470<span style="color:#f92672">]</span>: W1215 01:35:15.917707    <span style="color:#ae81ff">8470</span> sysinfo.go:227<span style="color:#f92672">]</span> Found node without any CPU, nodeDir: /sys/devices/system/node/node3, number of cpuDirs 0, err: &lt;nil&gt;
+</span></span><span style="display:flex;"><span>Dec <span style="color:#ae81ff">15</span> 01:35:15 cp1 kubelet<span style="color:#f92672">[</span>8470<span style="color:#f92672">]</span>: W1215 01:35:15.917902    <span style="color:#ae81ff">8470</span> sysinfo.go:227<span style="color:#f92672">]</span> Found node without any CPU, nodeDir: /sys/devices/system/node/node4, number of cpuDirs 0, err: &lt;nil&gt;
+</span></span><span style="display:flex;"><span>Dec <span style="color:#ae81ff">15</span> 01:35:15 cp1 kubelet<span style="color:#f92672">[</span>8470<span style="color:#f92672">]</span>: W1215 01:35:15.918031    <span style="color:#ae81ff">8470</span> sysinfo.go:227<span style="color:#f92672">]</span> Found node without any CPU, nodeDir: /sys/devices/system/node/node5, number of cpuDirs 0, err: &lt;nil&gt;
+</span></span><span style="display:flex;"><span>Dec <span style="color:#ae81ff">15</span> 01:35:15 cp1 kubelet<span style="color:#f92672">[</span>8470<span style="color:#f92672">]</span>: W1215 01:35:15.918158    <span style="color:#ae81ff">8470</span> sysinfo.go:227<span style="color:#f92672">]</span> Found node without any CPU, nodeDir: /sys/devices/system/node/node6, number of cpuDirs 0, err: &lt;nil&gt;
+</span></span><span style="display:flex;"><span>Dec <span style="color:#ae81ff">15</span> 01:35:15 cp1 kubelet<span style="color:#f92672">[</span>8470<span style="color:#f92672">]</span>: W1215 01:35:15.918279    <span style="color:#ae81ff">8470</span> sysinfo.go:227<span style="color:#f92672">]</span> Found node without any CPU, nodeDir: /sys/devices/system/node/node7, number of cpuDirs 0, err: &lt;nil&gt;
+</span></span><span style="display:flex;"><span>Dec <span style="color:#ae81ff">15</span> 01:35:15 cp1 kubelet<span style="color:#f92672">[</span>8470<span style="color:#f92672">]</span>: I1215 01:35:15.919039    <span style="color:#ae81ff">8470</span> server.go:781<span style="color:#f92672">]</span> <span style="color:#e6db74">&#34;--cgroups-per-qos enabled, but --cgroup-root was not specified.  Defaulting to /&#34;</span>
+</span></span><span style="display:flex;"><span>Dec <span style="color:#ae81ff">15</span> 01:35:15 cp1 kubelet<span style="color:#f92672">[</span>8470<span style="color:#f92672">]</span>: I1215 01:35:15.919190    <span style="color:#ae81ff">8470</span> swap_util.go:115<span style="color:#f92672">]</span> <span style="color:#e6db74">&#34;Swap is on&#34;</span> /proc/swaps contents<span style="color:#f92672">=</span>&lt;
+</span></span><span style="display:flex;"><span>Dec <span style="color:#ae81ff">15</span> 01:35:15 cp1 kubelet<span style="color:#f92672">[</span>8470<span style="color:#f92672">]</span>:         Filename                                Type                Size                Used                Priority
+</span></span><span style="display:flex;"><span>Dec <span style="color:#ae81ff">15</span> 01:35:15 cp1 kubelet<span style="color:#f92672">[</span>8470<span style="color:#f92672">]</span>:         /dev/zram0                              partition        <span style="color:#ae81ff">2097136</span>                <span style="color:#ae81ff">0</span>                <span style="color:#ae81ff">100</span>
+</span></span><span style="display:flex;"><span>Dec <span style="color:#ae81ff">15</span> 01:35:15 cp1 kubelet<span style="color:#f92672">[</span>8470<span style="color:#f92672">]</span>:  &gt;
+</span></span><span style="display:flex;"><span>Dec <span style="color:#ae81ff">15</span> 01:35:15 cp1 kubelet<span style="color:#f92672">[</span>8470<span style="color:#f92672">]</span>: E1215 01:35:15.919309    <span style="color:#ae81ff">8470</span> run.go:72<span style="color:#f92672">]</span> <span style="color:#e6db74">&#34;command failed&#34;</span> err<span style="color:#f92672">=</span><span style="color:#e6db74">&#34;failed to run Kubelet: running with swap on is not supported, please disable swap or set --fail-swap-on flag to false&#34;</span>
+</span></span><span style="display:flex;"><span>Dec <span style="color:#ae81ff">15</span> 01:35:15 cp1 systemd<span style="color:#f92672">[</span>1<span style="color:#f92672">]</span>: kubelet.service: Main process exited, code<span style="color:#f92672">=</span>exited, status<span style="color:#f92672">=</span>1/FAILURE
+</span></span><span style="display:flex;"><span>░░ Subject: Unit process exited
+</span></span><span style="display:flex;"><span>░░ Defined-By: systemd
+</span></span><span style="display:flex;"><span>░░ Support: https://www.debian.org/support
+</span></span><span style="display:flex;"><span>░░
+</span></span><span style="display:flex;"><span>░░ An ExecStart<span style="color:#f92672">=</span> process belonging to unit kubelet.service has exited.
+</span></span><span style="display:flex;"><span>░░
+</span></span><span style="display:flex;"><span>░░ The process<span style="color:#e6db74">&#39; exit code is &#39;</span>exited<span style="color:#e6db74">&#39; and its exit status is 1.
+</span></span></span><span style="display:flex;"><span><span style="color:#e6db74">Dec 15 01:35:15 cp1 systemd[1]: kubelet.service: Failed with result &#39;</span>exit-code<span style="color:#e6db74">&#39;.
+</span></span></span><span style="display:flex;"><span><span style="color:#e6db74">░░ Subject: Unit failed
+</span></span></span><span style="display:flex;"><span><span style="color:#e6db74">░░ Defined-By: systemd
+</span></span></span><span style="display:flex;"><span><span style="color:#e6db74">░░ Support: https://www.debian.org/support
+</span></span></span><span style="display:flex;"><span><span style="color:#e6db74">░░
+</span></span></span><span style="display:flex;"><span><span style="color:#e6db74">░░ The unit kubelet.service has entered the &#39;</span>failed<span style="color:#e6db74">&#39; state with result &#39;</span>exit-code<span style="color:#960050;background-color:#1e0010">&#39;</span>.
+</span></span></code></pre></div><p>Kubelet is crashing because swap is enabled (on /dev/zram0), and this Kubernetes version is configured to fail if any swap is on.</p>
+<p>To disable zram swap so it does not come back after reboot I need to find which unit manages it:</p>
+<div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-bash" data-lang="bash"><span style="display:flex;"><span>david@cp1:~ $ systemctl list-units <span style="color:#e6db74">&#39;*zram*&#39;</span> --no-pager
+</span></span><span style="display:flex;"><span>systemctl list-units <span style="color:#e6db74">&#39;*swap*&#39;</span> --no-pager
+</span></span><span style="display:flex;"><span>  UNIT                                   LOAD   ACTIVE SUB     DESCRIPTION
+</span></span><span style="display:flex;"><span>  sys-devices-virtual-block-zram0.device loaded active plugged /sys/devices/virtual/block/zram0
+</span></span><span style="display:flex;"><span>  systemd-zram-setup@zram0.service       loaded active exited  Create swap on /dev/zram0
+</span></span><span style="display:flex;"><span>  system-systemd<span style="color:#ae81ff">\x</span>2dzram<span style="color:#ae81ff">\x</span>2dsetup.slice  loaded active active  Slice /system/systemd-zram-setup
+</span></span><span style="display:flex;"><span>  dev-zram0.swap                         loaded active active  rpi-swap managed swap device <span style="color:#f92672">(</span>zram+file<span style="color:#f92672">)</span>
+</span></span><span style="display:flex;"><span>  rpi-zram-writeback.timer               loaded active waiting zram writeback timer
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span>Legend: LOAD   → Reflects whether the unit definition was properly loaded.
+</span></span><span style="display:flex;"><span>        ACTIVE → The high-level unit activation state, i.e. generalization of SUB.
+</span></span><span style="display:flex;"><span>        SUB    → The low-level unit activation state, values depend on unit type.
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span><span style="color:#ae81ff">5</span> loaded units listed. Pass --all to see loaded but inactive units, too.
+</span></span><span style="display:flex;"><span>To show all installed unit files use <span style="color:#e6db74">&#39;systemctl list-unit-files&#39;</span>.
+</span></span><span style="display:flex;"><span>  UNIT                            LOAD   ACTIVE SUB    DESCRIPTION
+</span></span><span style="display:flex;"><span>  rpi-setup-loop@var-swap.service loaded active exited rpi-setup-loop - set up file on loop device
+</span></span><span style="display:flex;"><span>  dev-zram0.swap                  loaded active active rpi-swap managed swap device <span style="color:#f92672">(</span>zram+file<span style="color:#f92672">)</span>
+</span></span><span style="display:flex;"><span>  swap.target                     loaded active active Swaps
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span>Legend: LOAD   → Reflects whether the unit definition was properly loaded.
+</span></span><span style="display:flex;"><span>        ACTIVE → The high-level unit activation state, i.e. generalization of SUB.
+</span></span><span style="display:flex;"><span>        SUB    → The low-level unit activation state, values depend on unit type.
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span><span style="color:#ae81ff">3</span> loaded units listed. Pass --all to see loaded but inactive units, too.
+</span></span><span style="display:flex;"><span>To show all installed unit files use <span style="color:#e6db74">&#39;systemctl list-unit-files&#39;</span>.
+</span></span></code></pre></div><p>Disable by running:</p>
+<div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-bash" data-lang="bash"><span style="display:flex;"><span>sudo swapoff /dev/zram0
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span>sudo systemctl stop dev-zram0.swap
+</span></span><span style="display:flex;"><span>sudo systemctl stop systemd-zram-setup@zram0.service
+</span></span><span style="display:flex;"><span>sudo systemctl stop rpi-zram-writeback.timer
+</span></span><span style="display:flex;"><span>sudo systemctl stop rpi-setup-loop@var-swap.service
+</span></span></code></pre></div><p>On newer Raspberry Pi OS, the the rpi-swap package is responsible so to make it persistantly disabled I will remove it with <code>sudo apt-get purge rpi-swap</code> followed by <code>sudo apt remove systemd-zram-generator</code>. After a reboot (to ensure it&rsquo;s truly fixed) I run <code>free -h</code> and <code>swapon --show</code>:</p>
+<div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-bash" data-lang="bash"><span style="display:flex;"><span>david@cp1:~ $ free -h
+</span></span><span style="display:flex;"><span>swapon --show
+</span></span><span style="display:flex;"><span>               total        used        free      shared  buff/cache   available
+</span></span><span style="display:flex;"><span>Mem:            15Gi       504Mi        14Gi        15Mi       557Mi        15Gi
+</span></span><span style="display:flex;"><span>Swap:             0B          0B          0B
+</span></span></code></pre></div><p>Since swap stayed at zero, kubelet will stop failing with “running with swap on is not supported” so I can re-run kubeadm init:</p>
+<div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-bash" data-lang="bash"><span style="display:flex;"><span>sudo systemctl restart kubelet
+</span></span><span style="display:flex;"><span>sudo kubeadm reset -f
+</span></span><span style="display:flex;"><span>sudo kubeadm init <span style="color:#ae81ff">\
+</span></span></span><span style="display:flex;"><span><span style="color:#ae81ff"></span>  --control-plane-endpoint <span style="color:#e6db74">&#34;192.168.8.205:6443&#34;</span> <span style="color:#ae81ff">\
+</span></span></span><span style="display:flex;"><span><span style="color:#ae81ff"></span>  --pod-network-cidr<span style="color:#f92672">=</span>10.244.0.0/16 <span style="color:#ae81ff">\
+</span></span></span><span style="display:flex;"><span><span style="color:#ae81ff"></span>  --ignore-preflight-errors<span style="color:#f92672">=</span>SystemVerification
+</span></span></code></pre></div><p>Kubelet is now healthy but i have issues during cluster role binding creation</p>
+<div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-bash" data-lang="bash"><span style="display:flex;"><span>david@cp1:~ $ sudo systemctl restart kubelet
+</span></span><span style="display:flex;"><span>sudo kubeadm reset -f
+</span></span><span style="display:flex;"><span>sudo kubeadm init <span style="color:#ae81ff">\
+</span></span></span><span style="display:flex;"><span><span style="color:#ae81ff"></span>  --control-plane-endpoint <span style="color:#e6db74">&#34;192.168.8.205:6443&#34;</span> <span style="color:#ae81ff">\
+</span></span></span><span style="display:flex;"><span><span style="color:#ae81ff"></span>  --pod-network-cidr<span style="color:#f92672">=</span>10.244.0.0/16 <span style="color:#ae81ff">\
+</span></span></span><span style="display:flex;"><span><span style="color:#ae81ff"></span>  --ignore-preflight-errors<span style="color:#f92672">=</span>SystemVerification
+</span></span><span style="display:flex;"><span><span style="color:#f92672">[</span>reset<span style="color:#f92672">]</span> Reading configuration from the <span style="color:#e6db74">&#34;kubeadm-config&#34;</span> ConfigMap in namespace <span style="color:#e6db74">&#34;kube-system&#34;</span>...
+</span></span><span style="display:flex;"><span><span style="color:#f92672">[</span>reset<span style="color:#f92672">]</span> Use <span style="color:#e6db74">&#39;kubeadm init phase upload-config kubeadm --config your-config-file&#39;</span> to re-upload it.
+</span></span><span style="display:flex;"><span>W1215 01:56:30.996269    <span style="color:#ae81ff">1395</span> reset.go:141<span style="color:#f92672">]</span> <span style="color:#f92672">[</span>reset<span style="color:#f92672">]</span> Unable to fetch the kubeadm-config ConfigMap from cluster: failed to get config map: Get <span style="color:#e6db74">&#34;https://192.168.8.205:6443/api/v1/namespaces/kube-system/configmaps/kubeadm-config?timeout=10s&#34;</span>: dial tcp 192.168.8.205:6443: connect: no route to host
+</span></span><span style="display:flex;"><span><span style="color:#f92672">[</span>preflight<span style="color:#f92672">]</span> Running pre-flight checks
+</span></span><span style="display:flex;"><span>W1215 01:56:30.996370    <span style="color:#ae81ff">1395</span> removeetcdmember.go:105<span style="color:#f92672">]</span> <span style="color:#f92672">[</span>reset<span style="color:#f92672">]</span> No kubeadm config, using etcd pod spec to get data directory
+</span></span><span style="display:flex;"><span><span style="color:#f92672">[</span>reset<span style="color:#f92672">]</span> Deleted contents of the etcd data directory: /var/lib/etcd
+</span></span><span style="display:flex;"><span><span style="color:#f92672">[</span>reset<span style="color:#f92672">]</span> Stopping the kubelet service
+</span></span><span style="display:flex;"><span><span style="color:#f92672">[</span>reset<span style="color:#f92672">]</span> Unmounting mounted directories in <span style="color:#e6db74">&#34;/var/lib/kubelet&#34;</span>
+</span></span><span style="display:flex;"><span><span style="color:#f92672">[</span>reset<span style="color:#f92672">]</span> Deleting contents of directories: <span style="color:#f92672">[</span>/etc/kubernetes/manifests /var/lib/kubelet /etc/kubernetes/pki<span style="color:#f92672">]</span>
+</span></span><span style="display:flex;"><span><span style="color:#f92672">[</span>reset<span style="color:#f92672">]</span> Deleting files: <span style="color:#f92672">[</span>/etc/kubernetes/admin.conf /etc/kubernetes/super-admin.conf /etc/kubernetes/kubelet.conf /etc/kubernetes/bootstrap-kubelet.conf /etc/kubernetes/controller-manager.conf /etc/kubernetes/scheduler.conf<span style="color:#f92672">]</span>
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span>...truncated...
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span><span style="color:#f92672">[</span>kubelet-start<span style="color:#f92672">]</span> Starting the kubelet
+</span></span><span style="display:flex;"><span><span style="color:#f92672">[</span>wait-control-plane<span style="color:#f92672">]</span> Waiting <span style="color:#66d9ef">for</span> the kubelet to boot up the control plane as static Pods from directory <span style="color:#e6db74">&#34;/etc/kubernetes/manifests&#34;</span>
+</span></span><span style="display:flex;"><span><span style="color:#f92672">[</span>kubelet-check<span style="color:#f92672">]</span> Waiting <span style="color:#66d9ef">for</span> a healthy kubelet at http://127.0.0.1:10248/healthz. This can take up to 4m0s
+</span></span><span style="display:flex;"><span><span style="color:#f92672">[</span>kubelet-check<span style="color:#f92672">]</span> The kubelet is healthy after 1.001453205s
+</span></span><span style="display:flex;"><span><span style="color:#f92672">[</span>control-plane-check<span style="color:#f92672">]</span> Waiting <span style="color:#66d9ef">for</span> healthy control plane components. This can take up to 4m0s
+</span></span><span style="display:flex;"><span><span style="color:#f92672">[</span>control-plane-check<span style="color:#f92672">]</span> Checking kube-apiserver at https://192.168.8.201:6443/livez
+</span></span><span style="display:flex;"><span><span style="color:#f92672">[</span>control-plane-check<span style="color:#f92672">]</span> Checking kube-controller-manager at https://127.0.0.1:10257/healthz
+</span></span><span style="display:flex;"><span><span style="color:#f92672">[</span>control-plane-check<span style="color:#f92672">]</span> Checking kube-scheduler at https://127.0.0.1:10259/livez
+</span></span><span style="display:flex;"><span><span style="color:#f92672">[</span>control-plane-check<span style="color:#f92672">]</span> kube-scheduler is healthy after 3.332824469s
+</span></span><span style="display:flex;"><span><span style="color:#f92672">[</span>control-plane-check<span style="color:#f92672">]</span> kube-controller-manager is healthy after 4.201678899s
+</span></span><span style="display:flex;"><span><span style="color:#f92672">[</span>control-plane-check<span style="color:#f92672">]</span> kube-apiserver is healthy after 5.002082661s
+</span></span><span style="display:flex;"><span>error: error execution phase upload-config/kubeadm: could not bootstrap the admin user in file admin.conf: unable to create ClusterRoleBinding: Post <span style="color:#e6db74">&#34;https://192.168.8.205:6443/apis/rbac.authorization.k8s.io/v1/clusterrolebindings?timeout=10s&#34;</span>: context deadline exceeded
+</span></span><span style="display:flex;"><span>To see the stack trace of this error execute with --v<span style="color:#f92672">=</span><span style="color:#ae81ff">5</span> or higher
+</span></span></code></pre></div><p>I try to debug with curl to verify both ips work:</p>
+<div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-bash" data-lang="bash"><span style="display:flex;"><span><span style="color:#f92672">[</span>control-plane-check<span style="color:#f92672">]</span> kube-apiserver is healthy after 5.002082661s
+</span></span><span style="display:flex;"><span>error: error execution phase upload-config/kubeadm: could not bootstrap the admin user in file admin.conf: unable to create ClusterRoleBinding: Post <span style="color:#e6db74">&#34;https://192.168.8.205:6443/apis/rbac.authorization.k8s.io/v1/clusterrolebindings?timeout=10s&#34;</span>: context deadline exceeded
+</span></span><span style="display:flex;"><span>To see the stack trace of this error execute with --v<span style="color:#f92672">=</span><span style="color:#ae81ff">5</span> or higher
+</span></span></code></pre></div><p>To check the IP is actually assigned on cp1 when kubeadm runs is use <code>ip addr show eth0</code> and see it hasn&rsquo;t persisted after an earlier reboot (previously it had).</p>
+<p>I re-run <code>sudo nmcli connection modify &quot;Wired connection 1&quot; +ipv4.addresses &quot;192.168.8.205/24&quot;</code> and reboot then check with <code>ip addr show eth0</code>:</p>
+<div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-bash" data-lang="bash"><span style="display:flex;"><span>david@cp1:~ $ ip addr show eth0
+</span></span><span style="display:flex;"><span>2: eth0: &lt;BROADCAST,MULTICAST,UP,LOWER_UP&gt; mtu <span style="color:#ae81ff">1500</span> qdisc fq_codel state UP group default qlen <span style="color:#ae81ff">1000</span>
+</span></span><span style="display:flex;"><span>    link/ether 2c:cf:67:f0:0a:a9 brd ff:ff:ff:ff:ff:ff
+</span></span><span style="display:flex;"><span>    inet 192.168.8.201/24 brd 192.168.8.255 scope global noprefixroute eth0
+</span></span><span style="display:flex;"><span>       valid_lft forever preferred_lft forever
+</span></span><span style="display:flex;"><span>    inet 192.168.8.205/32 scope global noprefixroute eth0
+</span></span><span style="display:flex;"><span>       valid_lft forever preferred_lft forever
+</span></span><span style="display:flex;"><span>    inet 192.168.8.205/24 brd 192.168.8.255 scope global secondary noprefixroute eth0
+</span></span><span style="display:flex;"><span>       valid_lft forever preferred_lft forever
+</span></span><span style="display:flex;"><span>    inet6 fe80::4354:5179:5ea:cb89/64 scope link noprefixroute
+</span></span><span style="display:flex;"><span>       valid_lft forever preferred_lft forever
+</span></span></code></pre></div><p>Things are working as expected so once again I re-run kubeadm init:</p>
+<div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-bash" data-lang="bash"><span style="display:flex;"><span>david@cp1: sudo kubeadm reset -f
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span>sudo kubeadm init <span style="color:#ae81ff">\
+</span></span></span><span style="display:flex;"><span><span style="color:#ae81ff"></span>  --control-plane-endpoint <span style="color:#e6db74">&#34;192.168.8.205:6443&#34;</span> <span style="color:#ae81ff">\
+</span></span></span><span style="display:flex;"><span><span style="color:#ae81ff"></span>  --pod-network-cidr<span style="color:#f92672">=</span>10.244.0.0/16 <span style="color:#ae81ff">\
+</span></span></span><span style="display:flex;"><span><span style="color:#ae81ff"></span>  --ignore-preflight-errors<span style="color:#f92672">=</span>SystemVerification
+</span></span><span style="display:flex;"><span><span style="color:#f92672">[</span>reset<span style="color:#f92672">]</span> Reading configuration from the <span style="color:#e6db74">&#34;kubeadm-config&#34;</span> ConfigMap in namespace <span style="color:#e6db74">&#34;kube-system&#34;</span>...
+</span></span><span style="display:flex;"><span><span style="color:#f92672">[</span>reset<span style="color:#f92672">]</span> Use <span style="color:#e6db74">&#39;kubeadm init phase upload-config kubeadm --config your-config-file&#39;</span> to re-upload it.
+</span></span><span style="display:flex;"><span>W1215 02:20:58.770796    <span style="color:#ae81ff">1278</span> reset.go:141<span style="color:#f92672">]</span> <span style="color:#f92672">[</span>reset<span style="color:#f92672">]</span> Unable to fetch the kubeadm-config ConfigMap from cluster: failed to get config map: configmaps <span style="color:#e6db74">&#34;kubeadm-config&#34;</span> is forbidden: User <span style="color:#e6db74">&#34;kubernetes-admin&#34;</span> cannot get resource <span style="color:#e6db74">&#34;configmaps&#34;</span> in API group <span style="color:#e6db74">&#34;&#34;</span> in the namespace <span style="color:#e6db74">&#34;kube-system&#34;</span>
+</span></span><span style="display:flex;"><span><span style="color:#f92672">[</span>preflight<span style="color:#f92672">]</span> Running pre-flight checks
+</span></span><span style="display:flex;"><span>W1215 02:20:58.770985    <span style="color:#ae81ff">1278</span> removeetcdmember.go:105<span style="color:#f92672">]</span> <span style="color:#f92672">[</span>reset<span style="color:#f92672">]</span> No kubeadm config, using etcd pod spec to get data directory
+</span></span><span style="display:flex;"><span><span style="color:#f92672">[</span>reset<span style="color:#f92672">]</span> Deleted contents of the etcd data directory: /var/lib/etcd
+</span></span><span style="display:flex;"><span><span style="color:#f92672">[</span>reset<span style="color:#f92672">]</span> Stopping the kubelet service
+</span></span><span style="display:flex;"><span><span style="color:#f92672">[</span>reset<span style="color:#f92672">]</span> Unmounting mounted directories in <span style="color:#e6db74">&#34;/var/lib/kubelet&#34;</span>
+</span></span><span style="display:flex;"><span><span style="color:#f92672">[</span>reset<span style="color:#f92672">]</span> Deleting contents of directories: <span style="color:#f92672">[</span>/etc/kubernetes/manifests /var/lib/kubelet /etc/kubernetes/pki<span style="color:#f92672">]</span>
+</span></span><span style="display:flex;"><span><span style="color:#f92672">[</span>reset<span style="color:#f92672">]</span> Deleting files: <span style="color:#f92672">[</span>/etc/kubernetes/admin.conf /etc/kubernetes/super-admin.conf /etc/kubernetes/kubelet.conf /etc/kubernetes/bootstrap-kubelet.conf /etc/kubernetes/controller-manager.conf /etc/kubernetes/scheduler.conf<span style="color:#f92672">]</span>
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span>The reset process does not perform cleanup of CNI plugin configuration,
+</span></span><span style="display:flex;"><span>network filtering rules and kubeconfig files.
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span>For information on how to perform this cleanup manually, please see:
+</span></span><span style="display:flex;"><span>    https://k8s.io/docs/reference/setup-tools/kubeadm/kubeadm-reset/
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span><span style="color:#f92672">[</span>init<span style="color:#f92672">]</span> Using Kubernetes version: v1.34.3
+</span></span><span style="display:flex;"><span><span style="color:#f92672">[</span>preflight<span style="color:#f92672">]</span> Running pre-flight checks
+</span></span><span style="display:flex;"><span>	<span style="color:#f92672">[</span>WARNING SystemVerification<span style="color:#f92672">]</span>: missing optional cgroups: hugetlb
+</span></span><span style="display:flex;"><span><span style="color:#f92672">[</span>preflight<span style="color:#f92672">]</span> Pulling images required <span style="color:#66d9ef">for</span> setting up a Kubernetes cluster
+</span></span><span style="display:flex;"><span><span style="color:#f92672">[</span>preflight<span style="color:#f92672">]</span> This might take a minute or two, depending on the speed of your internet connection
+</span></span><span style="display:flex;"><span><span style="color:#f92672">[</span>preflight<span style="color:#f92672">]</span> You can also perform this action beforehand using <span style="color:#e6db74">&#39;kubeadm config images pull&#39;</span>
+</span></span><span style="display:flex;"><span><span style="color:#f92672">[</span>certs<span style="color:#f92672">]</span> Using certificateDir folder <span style="color:#e6db74">&#34;/etc/kubernetes/pki&#34;</span>
+</span></span><span style="display:flex;"><span><span style="color:#f92672">[</span>certs<span style="color:#f92672">]</span> Generating <span style="color:#e6db74">&#34;ca&#34;</span> certificate and key
+</span></span><span style="display:flex;"><span><span style="color:#f92672">[</span>certs<span style="color:#f92672">]</span> Generating <span style="color:#e6db74">&#34;apiserver&#34;</span> certificate and key
+</span></span><span style="display:flex;"><span><span style="color:#f92672">[</span>certs<span style="color:#f92672">]</span> apiserver serving cert is signed <span style="color:#66d9ef">for</span> DNS names <span style="color:#f92672">[</span>cp1 kubernetes kubernetes.default kubernetes.default.svc kubernetes.default.svc.cluster.local<span style="color:#f92672">]</span> and IPs <span style="color:#f92672">[</span>10.96.0.1 192.168.8.201 192.168.8.205<span style="color:#f92672">]</span>
+</span></span><span style="display:flex;"><span><span style="color:#f92672">[</span>certs<span style="color:#f92672">]</span> Generating <span style="color:#e6db74">&#34;apiserver-kubelet-client&#34;</span> certificate and key
+</span></span><span style="display:flex;"><span><span style="color:#f92672">[</span>certs<span style="color:#f92672">]</span> Generating <span style="color:#e6db74">&#34;front-proxy-ca&#34;</span> certificate and key
+</span></span><span style="display:flex;"><span><span style="color:#f92672">[</span>certs<span style="color:#f92672">]</span> Generating <span style="color:#e6db74">&#34;front-proxy-client&#34;</span> certificate and key
+</span></span><span style="display:flex;"><span><span style="color:#f92672">[</span>certs<span style="color:#f92672">]</span> Generating <span style="color:#e6db74">&#34;etcd/ca&#34;</span> certificate and key
+</span></span><span style="display:flex;"><span><span style="color:#f92672">[</span>certs<span style="color:#f92672">]</span> Generating <span style="color:#e6db74">&#34;etcd/server&#34;</span> certificate and key
+</span></span><span style="display:flex;"><span><span style="color:#f92672">[</span>certs<span style="color:#f92672">]</span> etcd/server serving cert is signed <span style="color:#66d9ef">for</span> DNS names <span style="color:#f92672">[</span>cp1 localhost<span style="color:#f92672">]</span> and IPs <span style="color:#f92672">[</span>192.168.8.201 127.0.0.1 ::1<span style="color:#f92672">]</span>
+</span></span><span style="display:flex;"><span><span style="color:#f92672">[</span>certs<span style="color:#f92672">]</span> Generating <span style="color:#e6db74">&#34;etcd/peer&#34;</span> certificate and key
+</span></span><span style="display:flex;"><span><span style="color:#f92672">[</span>certs<span style="color:#f92672">]</span> etcd/peer serving cert is signed <span style="color:#66d9ef">for</span> DNS names <span style="color:#f92672">[</span>cp1 localhost<span style="color:#f92672">]</span> and IPs <span style="color:#f92672">[</span>192.168.8.201 127.0.0.1 ::1<span style="color:#f92672">]</span>
+</span></span><span style="display:flex;"><span><span style="color:#f92672">[</span>certs<span style="color:#f92672">]</span> Generating <span style="color:#e6db74">&#34;etcd/healthcheck-client&#34;</span> certificate and key
+</span></span><span style="display:flex;"><span><span style="color:#f92672">[</span>certs<span style="color:#f92672">]</span> Generating <span style="color:#e6db74">&#34;apiserver-etcd-client&#34;</span> certificate and key
+</span></span><span style="display:flex;"><span><span style="color:#f92672">[</span>certs<span style="color:#f92672">]</span> Generating <span style="color:#e6db74">&#34;sa&#34;</span> key and public key
+</span></span><span style="display:flex;"><span><span style="color:#f92672">[</span>kubeconfig<span style="color:#f92672">]</span> Using kubeconfig folder <span style="color:#e6db74">&#34;/etc/kubernetes&#34;</span>
+</span></span><span style="display:flex;"><span><span style="color:#f92672">[</span>kubeconfig<span style="color:#f92672">]</span> Writing <span style="color:#e6db74">&#34;admin.conf&#34;</span> kubeconfig file
+</span></span><span style="display:flex;"><span><span style="color:#f92672">[</span>kubeconfig<span style="color:#f92672">]</span> Writing <span style="color:#e6db74">&#34;super-admin.conf&#34;</span> kubeconfig file
+</span></span><span style="display:flex;"><span><span style="color:#f92672">[</span>kubeconfig<span style="color:#f92672">]</span> Writing <span style="color:#e6db74">&#34;kubelet.conf&#34;</span> kubeconfig file
+</span></span><span style="display:flex;"><span><span style="color:#f92672">[</span>kubeconfig<span style="color:#f92672">]</span> Writing <span style="color:#e6db74">&#34;controller-manager.conf&#34;</span> kubeconfig file
+</span></span><span style="display:flex;"><span><span style="color:#f92672">[</span>kubeconfig<span style="color:#f92672">]</span> Writing <span style="color:#e6db74">&#34;scheduler.conf&#34;</span> kubeconfig file
+</span></span><span style="display:flex;"><span><span style="color:#f92672">[</span>etcd<span style="color:#f92672">]</span> Creating static Pod manifest <span style="color:#66d9ef">for</span> local etcd in <span style="color:#e6db74">&#34;/etc/kubernetes/manifests&#34;</span>
+</span></span><span style="display:flex;"><span><span style="color:#f92672">[</span>control-plane<span style="color:#f92672">]</span> Using manifest folder <span style="color:#e6db74">&#34;/etc/kubernetes/manifests&#34;</span>
+</span></span><span style="display:flex;"><span><span style="color:#f92672">[</span>control-plane<span style="color:#f92672">]</span> Creating static Pod manifest <span style="color:#66d9ef">for</span> <span style="color:#e6db74">&#34;kube-apiserver&#34;</span>
+</span></span><span style="display:flex;"><span><span style="color:#f92672">[</span>control-plane<span style="color:#f92672">]</span> Creating static Pod manifest <span style="color:#66d9ef">for</span> <span style="color:#e6db74">&#34;kube-controller-manager&#34;</span>
+</span></span><span style="display:flex;"><span><span style="color:#f92672">[</span>control-plane<span style="color:#f92672">]</span> Creating static Pod manifest <span style="color:#66d9ef">for</span> <span style="color:#e6db74">&#34;kube-scheduler&#34;</span>
+</span></span><span style="display:flex;"><span><span style="color:#f92672">[</span>kubelet-start<span style="color:#f92672">]</span> Writing kubelet environment file with flags to file <span style="color:#e6db74">&#34;/var/lib/kubelet/kubeadm-flags.env&#34;</span>
+</span></span><span style="display:flex;"><span><span style="color:#f92672">[</span>kubelet-start<span style="color:#f92672">]</span> Writing kubelet configuration to file <span style="color:#e6db74">&#34;/var/lib/kubelet/instance-config.yaml&#34;</span>
+</span></span><span style="display:flex;"><span><span style="color:#f92672">[</span>patches<span style="color:#f92672">]</span> Applied patch of type <span style="color:#e6db74">&#34;application/strategic-merge-patch+json&#34;</span> to target <span style="color:#e6db74">&#34;kubeletconfiguration&#34;</span>
+</span></span><span style="display:flex;"><span><span style="color:#f92672">[</span>kubelet-start<span style="color:#f92672">]</span> Writing kubelet configuration to file <span style="color:#e6db74">&#34;/var/lib/kubelet/config.yaml&#34;</span>
+</span></span><span style="display:flex;"><span><span style="color:#f92672">[</span>kubelet-start<span style="color:#f92672">]</span> Starting the kubelet
+</span></span><span style="display:flex;"><span><span style="color:#f92672">[</span>wait-control-plane<span style="color:#f92672">]</span> Waiting <span style="color:#66d9ef">for</span> the kubelet to boot up the control plane as static Pods from directory <span style="color:#e6db74">&#34;/etc/kubernetes/manifests&#34;</span>
+</span></span><span style="display:flex;"><span><span style="color:#f92672">[</span>kubelet-check<span style="color:#f92672">]</span> Waiting <span style="color:#66d9ef">for</span> a healthy kubelet at http://127.0.0.1:10248/healthz. This can take up to 4m0s
+</span></span><span style="display:flex;"><span><span style="color:#f92672">[</span>kubelet-check<span style="color:#f92672">]</span> The kubelet is healthy after 1.001154215s
+</span></span><span style="display:flex;"><span><span style="color:#f92672">[</span>control-plane-check<span style="color:#f92672">]</span> Waiting <span style="color:#66d9ef">for</span> healthy control plane components. This can take up to 4m0s
+</span></span><span style="display:flex;"><span><span style="color:#f92672">[</span>control-plane-check<span style="color:#f92672">]</span> Checking kube-apiserver at https://192.168.8.201:6443/livez
+</span></span><span style="display:flex;"><span><span style="color:#f92672">[</span>control-plane-check<span style="color:#f92672">]</span> Checking kube-controller-manager at https://127.0.0.1:10257/healthz
+</span></span><span style="display:flex;"><span><span style="color:#f92672">[</span>control-plane-check<span style="color:#f92672">]</span> Checking kube-scheduler at https://127.0.0.1:10259/livez
+</span></span><span style="display:flex;"><span><span style="color:#f92672">[</span>control-plane-check<span style="color:#f92672">]</span> kube-controller-manager is healthy after 4.051910865s
+</span></span><span style="display:flex;"><span><span style="color:#f92672">[</span>control-plane-check<span style="color:#f92672">]</span> kube-scheduler is healthy after 4.105297996s
+</span></span><span style="display:flex;"><span><span style="color:#f92672">[</span>control-plane-check<span style="color:#f92672">]</span> kube-apiserver is healthy after 5.501911182s
+</span></span><span style="display:flex;"><span><span style="color:#f92672">[</span>upload-config<span style="color:#f92672">]</span> Storing the configuration used in ConfigMap <span style="color:#e6db74">&#34;kubeadm-config&#34;</span> in the <span style="color:#e6db74">&#34;kube-system&#34;</span> Namespace
+</span></span><span style="display:flex;"><span><span style="color:#f92672">[</span>kubelet<span style="color:#f92672">]</span> Creating a ConfigMap <span style="color:#e6db74">&#34;kubelet-config&#34;</span> in namespace kube-system with the configuration <span style="color:#66d9ef">for</span> the kubelets in the cluster
+</span></span><span style="display:flex;"><span><span style="color:#f92672">[</span>upload-certs<span style="color:#f92672">]</span> Skipping phase. Please see --upload-certs
+</span></span><span style="display:flex;"><span><span style="color:#f92672">[</span>mark-control-plane<span style="color:#f92672">]</span> Marking the node cp1 as control-plane by adding the labels: <span style="color:#f92672">[</span>node-role.kubernetes.io/control-plane node.kubernetes.io/exclude-from-external-load-balancers<span style="color:#f92672">]</span>
+</span></span><span style="display:flex;"><span><span style="color:#f92672">[</span>mark-control-plane<span style="color:#f92672">]</span> Marking the node cp1 as control-plane by adding the taints <span style="color:#f92672">[</span>node-role.kubernetes.io/control-plane:NoSchedule<span style="color:#f92672">]</span>
+</span></span><span style="display:flex;"><span><span style="color:#f92672">[</span>bootstrap-token<span style="color:#f92672">]</span> Using token: &lt;redacted&gt;
+</span></span><span style="display:flex;"><span><span style="color:#f92672">[</span>bootstrap-token<span style="color:#f92672">]</span> Configuring bootstrap tokens, cluster-info ConfigMap, RBAC Roles
+</span></span><span style="display:flex;"><span><span style="color:#f92672">[</span>bootstrap-token<span style="color:#f92672">]</span> Configured RBAC rules to allow Node Bootstrap tokens to get nodes
+</span></span><span style="display:flex;"><span><span style="color:#f92672">[</span>bootstrap-token<span style="color:#f92672">]</span> Configured RBAC rules to allow Node Bootstrap tokens to post CSRs in order <span style="color:#66d9ef">for</span> nodes to get long term certificate credentials
+</span></span><span style="display:flex;"><span><span style="color:#f92672">[</span>bootstrap-token<span style="color:#f92672">]</span> Configured RBAC rules to allow the csrapprover controller automatically approve CSRs from a Node Bootstrap Token
+</span></span><span style="display:flex;"><span><span style="color:#f92672">[</span>bootstrap-token<span style="color:#f92672">]</span> Configured RBAC rules to allow certificate rotation <span style="color:#66d9ef">for</span> all node client certificates in the cluster
+</span></span><span style="display:flex;"><span><span style="color:#f92672">[</span>bootstrap-token<span style="color:#f92672">]</span> Creating the <span style="color:#e6db74">&#34;cluster-info&#34;</span> ConfigMap in the <span style="color:#e6db74">&#34;kube-public&#34;</span> namespace
+</span></span><span style="display:flex;"><span><span style="color:#f92672">[</span>kubelet-finalize<span style="color:#f92672">]</span> Updating <span style="color:#e6db74">&#34;/etc/kubernetes/kubelet.conf&#34;</span> to point to a rotatable kubelet client certificate and key
+</span></span><span style="display:flex;"><span><span style="color:#f92672">[</span>addons<span style="color:#f92672">]</span> Applied essential addon: CoreDNS
+</span></span><span style="display:flex;"><span><span style="color:#f92672">[</span>addons<span style="color:#f92672">]</span> Applied essential addon: kube-proxy
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span>Your Kubernetes control-plane has initialized successfully!
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span>To start using your cluster, you need to run the following as a regular user:
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span>  mkdir -p $HOME/.kube
+</span></span><span style="display:flex;"><span>  sudo cp -i /etc/kubernetes/admin.conf $HOME/.kube/config
+</span></span><span style="display:flex;"><span>  sudo chown <span style="color:#66d9ef">$(</span>id -u<span style="color:#66d9ef">)</span>:<span style="color:#66d9ef">$(</span>id -g<span style="color:#66d9ef">)</span> $HOME/.kube/config
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span>Alternatively, <span style="color:#66d9ef">if</span> you are the root user, you can run:
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span>  export KUBECONFIG<span style="color:#f92672">=</span>/etc/kubernetes/admin.conf
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span>You should now deploy a pod network to the cluster.
+</span></span><span style="display:flex;"><span>Run <span style="color:#e6db74">&#34;kubectl apply -f [podnetwork].yaml&#34;</span> with one of the options listed at:
+</span></span><span style="display:flex;"><span>  https://kubernetes.io/docs/concepts/cluster-administration/addons/
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span>You can now join any number of control-plane nodes by copying certificate authorities
+</span></span><span style="display:flex;"><span>and service account keys on each node and <span style="color:#66d9ef">then</span> running the following as root:
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span>  kubeadm join 192.168.8.205:6443 --token &lt;redacted&gt; <span style="color:#ae81ff">\
+</span></span></span><span style="display:flex;"><span><span style="color:#ae81ff"></span>	--discovery-token-ca-cert-hash sha256: &lt;redacted&gt; <span style="color:#ae81ff">\
+</span></span></span><span style="display:flex;"><span><span style="color:#ae81ff"></span>	--control-plane
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span>Then you can join any number of worker nodes by running the following on each as root:
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span>kubeadm join 192.168.8.205:6443 --token &lt;redacted&gt; <span style="color:#ae81ff">\
+</span></span></span><span style="display:flex;"><span><span style="color:#ae81ff"></span>	--discovery-token-ca-cert-hash sha256: &lt;redacted&gt;
+</span></span></code></pre></div><p>and we&rsquo;re back in business! It&rsquo;s good security hygeine to keep the join token secret but if ever it&rsquo;s exposed you can generate a new one with <code>kubeadm token create --print-join-command</code></p>
+<h2 id="finishing-up">Finishing up</h2>
+<p>Now to run</p>
+<div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-bash" data-lang="bash"><span style="display:flex;"><span>mkdir -p $HOME/.kube
+</span></span><span style="display:flex;"><span>sudo cp -i /etc/kubernetes/admin.conf $HOME/.kube/config
+</span></span><span style="display:flex;"><span>sudo chown <span style="color:#e6db74">&#34;</span><span style="color:#66d9ef">$(</span>id -u<span style="color:#66d9ef">)</span><span style="color:#e6db74">:</span><span style="color:#66d9ef">$(</span>id -g<span style="color:#66d9ef">)</span><span style="color:#e6db74">&#34;</span> $HOME/.kube/config
+</span></span></code></pre></div><p>and install the pod network. For the 10.244.0.0/16 pod CIDR I used, Flannel is a straightforward choice:</p>
+<p><code>kubectl apply -f https://raw.githubusercontent.com/flannel-io/flannel/master/Documentation/kube-flannel.yml</code></p>
+<div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-bash" data-lang="bash"><span style="display:flex;"><span>david@cp1:~ $ kubectl apply -f https://raw.githubusercontent.com/flannel-io/flannel/master/Documentation/kube-flannel.yml
+</span></span><span style="display:flex;"><span>namespace/kube-flannel created
+</span></span><span style="display:flex;"><span>clusterrole.rbac.authorization.k8s.io/flannel created
+</span></span><span style="display:flex;"><span>clusterrolebinding.rbac.authorization.k8s.io/flannel created
+</span></span><span style="display:flex;"><span>serviceaccount/flannel created
+</span></span><span style="display:flex;"><span>configmap/kube-flannel-cfg created
+</span></span><span style="display:flex;"><span>daemonset.apps/kube-flannel-ds created
+</span></span></code></pre></div><p>Now to check the state of my pods:</p>
+<div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-bash" data-lang="bash"><span style="display:flex;"><span>david@cp1:~ $ kubectl get pods -A
+</span></span><span style="display:flex;"><span>NAMESPACE      NAME                          READY   STATUS              RESTARTS      AGE
+</span></span><span style="display:flex;"><span>kube-flannel   kube-flannel-ds-f4zbc         0/1     CrashLoopBackOff    <span style="color:#ae81ff">4</span> <span style="color:#f92672">(</span>54s ago<span style="color:#f92672">)</span>   2m34s
+</span></span><span style="display:flex;"><span>kube-system    coredns-66bc5c9577-lbdjl      0/1     ContainerCreating   <span style="color:#ae81ff">0</span>             26m
+</span></span><span style="display:flex;"><span>kube-system    coredns-66bc5c9577-zzl5h      0/1     ContainerCreating   <span style="color:#ae81ff">0</span>             26m
+</span></span><span style="display:flex;"><span>kube-system    etcd-cp1                      1/1     Running             <span style="color:#ae81ff">6</span>             26m
+</span></span><span style="display:flex;"><span>kube-system    kube-apiserver-cp1            1/1     Running             <span style="color:#ae81ff">6</span>             26m
+</span></span><span style="display:flex;"><span>kube-system    kube-controller-manager-cp1   1/1     Running             <span style="color:#ae81ff">4</span>             26m
+</span></span><span style="display:flex;"><span>kube-system    kube-proxy-lr2xt              1/1     Running             <span style="color:#ae81ff">0</span>             26m
+</span></span><span style="display:flex;"><span>kube-system    kube-scheduler-cp1            1/1     Running             <span style="color:#ae81ff">4</span>             26m
+</span></span></code></pre></div><p>Further investigation</p>
+<div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-bash" data-lang="bash"><span style="display:flex;"><span>david@cp1:~ $ kubectl -n kube-flannel logs kube-flannel-ds-f4zbc -c kube-flannel
+</span></span><span style="display:flex;"><span>I1215 02:48:22.230761       <span style="color:#ae81ff">1</span> main.go:215<span style="color:#f92672">]</span> CLI flags config: <span style="color:#f92672">{</span>etcdEndpoints:http://127.0.0.1:4001,http://127.0.0.1:2379 etcdPrefix:/coreos.com/network etcdKeyfile: etcdCertfile: etcdCAFile: etcdUsername: etcdPassword: version:false kubeSubnetMgr:true kubeApiUrl: kubeAnnotationPrefix:flannel.alpha.coreos.com kubeConfigFile: iface:<span style="color:#f92672">[]</span> ifaceRegex:<span style="color:#f92672">[]</span> ipMasq:true ipMasqRandomFullyDisable:false ifaceCanReach: subnetFile:/run/flannel/subnet.env publicIP: publicIPv6: subnetLeaseRenewMargin:60 healthzIP:0.0.0.0 healthzPort:0 iptablesResyncSeconds:5 iptablesForwardRules:true blackholeRoute:false netConfPath:/etc/kube-flannel/net-conf.json setNodeNetworkUnavailable:true<span style="color:#f92672">}</span>
+</span></span><span style="display:flex;"><span>W1215 02:48:22.230989       <span style="color:#ae81ff">1</span> client_config.go:659<span style="color:#f92672">]</span> Neither --kubeconfig nor --master was specified.  Using the inClusterConfig.  This might not work.
+</span></span><span style="display:flex;"><span>I1215 02:48:22.248728       <span style="color:#ae81ff">1</span> kube.go:139<span style="color:#f92672">]</span> Waiting 10m0s <span style="color:#66d9ef">for</span> node controller to sync
+</span></span><span style="display:flex;"><span>I1215 02:48:22.248932       <span style="color:#ae81ff">1</span> kube.go:537<span style="color:#f92672">]</span> Starting kube subnet manager
+</span></span><span style="display:flex;"><span>I1215 02:48:23.248917       <span style="color:#ae81ff">1</span> kube.go:163<span style="color:#f92672">]</span> Node controller sync successful
+</span></span><span style="display:flex;"><span>I1215 02:48:23.248976       <span style="color:#ae81ff">1</span> main.go:241<span style="color:#f92672">]</span> Created subnet manager: Kubernetes Subnet Manager - cp1
+</span></span><span style="display:flex;"><span>I1215 02:48:23.248988       <span style="color:#ae81ff">1</span> main.go:244<span style="color:#f92672">]</span> Installing signal handlers
+</span></span><span style="display:flex;"><span>I1215 02:48:23.249333       <span style="color:#ae81ff">1</span> main.go:523<span style="color:#f92672">]</span> Found network config - Backend type: vxlan
+</span></span><span style="display:flex;"><span>E1215 02:48:23.249419       <span style="color:#ae81ff">1</span> main.go:278<span style="color:#f92672">]</span> Failed to check br_netfilter: stat /proc/sys/net/bridge/bridge-nf-call-iptables: no such file or directory
+</span></span></code></pre></div><p>The kernel is missing the br_netfilter module that Flannel expects for iptables on bridged traffic</p>
+<div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-bash" data-lang="bash"><span style="display:flex;"><span>sudo modprobe br_netfilter
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span>echo <span style="color:#e6db74">&#34;net.bridge.bridge-nf-call-iptables = 1&#34;</span> | sudo tee /etc/sysctl.d/99-bridge.conf
+</span></span><span style="display:flex;"><span>echo <span style="color:#e6db74">&#34;net.bridge.bridge-nf-call-ip6tables = 1&#34;</span> | sudo tee -a /etc/sysctl.d/99-bridge.conf
+</span></span><span style="display:flex;"><span>echo <span style="color:#e6db74">&#34;net.bridge.bridge-nf-call-arptables = 1&#34;</span> | sudo tee -a /etc/sysctl.d/99-bridge.conf
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span>sudo sysctl --system
+</span></span></code></pre></div><p>This loads the kernel module and ensures the bridge sysctls are set on boot. Restart flannel by deleting its pod (so that the deamon set recreates it):</p>
+<div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-bash" data-lang="bash"><span style="display:flex;"><span>kubectl -n kube-flannel delete pod kube-flannel-ds-f4zbc
+</span></span></code></pre></div><p>Lastly, to verify all pods are running and the node is in Ready state:</p>
+<div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-bash" data-lang="bash"><span style="display:flex;"><span>david@cp1:~ $ kubectl get nodes
+</span></span><span style="display:flex;"><span>kubectl get pods -A
+</span></span><span style="display:flex;"><span>NAME   STATUS   ROLES           AGE   VERSION
+</span></span><span style="display:flex;"><span>cp1    Ready    control-plane   33m   v1.34.3
+</span></span><span style="display:flex;"><span>NAMESPACE      NAME                          READY   STATUS    RESTARTS   AGE
+</span></span><span style="display:flex;"><span>kube-flannel   kube-flannel-ds-wklmw         1/1     Running   <span style="color:#ae81ff">0</span>          77s
+</span></span><span style="display:flex;"><span>kube-system    coredns-66bc5c9577-lbdjl      1/1     Running   <span style="color:#ae81ff">0</span>          33m
+</span></span><span style="display:flex;"><span>kube-system    coredns-66bc5c9577-zzl5h      1/1     Running   <span style="color:#ae81ff">0</span>          33m
+</span></span><span style="display:flex;"><span>kube-system    etcd-cp1                      1/1     Running   <span style="color:#ae81ff">6</span>          33m
+</span></span><span style="display:flex;"><span>kube-system    kube-apiserver-cp1            1/1     Running   <span style="color:#ae81ff">6</span>          33m
+</span></span><span style="display:flex;"><span>kube-system    kube-controller-manager-cp1   1/1     Running   <span style="color:#ae81ff">4</span>          33m
+</span></span><span style="display:flex;"><span>kube-system    kube-proxy-lr2xt              1/1     Running   <span style="color:#ae81ff">0</span>          33m
+</span></span><span style="display:flex;"><span>kube-system    kube-scheduler-cp1            1/1     Running   <span style="color:#ae81ff">4</span>          33m
+</span></span></code></pre></div><h2 id="shutting-down-and-starting-up-safely">Shutting down and starting up safely</h2>
+<p>Before powering off</p>
+<div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-bash" data-lang="bash"><span style="display:flex;"><span><span style="color:#75715e"># Stop scheduling new pods on cp1</span>
+</span></span><span style="display:flex;"><span>kubectl cordon cp1
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span><span style="color:#75715e"># Evict existing workloads (ignoring DaemonSets like flannel, kube-proxy)</span>
+</span></span><span style="display:flex;"><span>kubectl drain cp1 --ignore-daemonsets --delete-emptydir-data
+</span></span></code></pre></div><p>This lets pods receive SIGTERM and exit cleanly instead of being killed mid‑request.​</p>
+<p>Then shut down the Pi:</p>
+<div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-bash" data-lang="bash"><span style="display:flex;"><span>sudo shutdown -h now
+</span></span></code></pre></div><p>Wait until LEDs indicate it is fully off before unpluging.</p>
+<p>To start it up again, after boot up has finished Check that the node and pods recovered:</p>
+<div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-bash" data-lang="bash"><span style="display:flex;"><span>kubectl get pods -A
+</span></span></code></pre></div><p>If node is Ready, it can be made schedulable again:</p>
+<div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-bash" data-lang="bash"><span style="display:flex;"><span>kubectl uncordon cp1
+</span></span></code></pre></div><div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-bash" data-lang="bash"><span style="display:flex;"><span>david@cp1:~ $ kubectl uncordon cp1
+</span></span><span style="display:flex;"><span>node/cp1 uncordoned
+</span></span></code></pre></div><p>In my case the kube-flannel container is crashing (exit code 1) due to a missing kernel bridge-netfilter module, shown by the error &ldquo;Failed to check br_netfilter: stat /proc/sys/net/bridge/bridge-nf-call-iptables: no such file or directory&rdquo;. This prevents Flannel&rsquo;s VXLAN networking from initializing, blocking CoreDNS pods that depend on CNI.</p>
+<div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-bash" data-lang="bash"><span style="display:flex;"><span>david@cp1:~ $ kubectl get pods -A
+</span></span><span style="display:flex;"><span>NAMESPACE      NAME                          READY   STATUS              RESTARTS        AGE
+</span></span><span style="display:flex;"><span>kube-flannel   kube-flannel-ds-wklmw         0/1     CrashLoopBackOff    <span style="color:#ae81ff">755</span> <span style="color:#f92672">(</span>85s ago<span style="color:#f92672">)</span>   14d
+</span></span><span style="display:flex;"><span>kube-system    coredns-66bc5c9577-2crjn      0/1     ContainerCreating   <span style="color:#ae81ff">0</span>               14d
+</span></span><span style="display:flex;"><span>kube-system    coredns-66bc5c9577-nx4x7      0/1     ContainerCreating   <span style="color:#ae81ff">0</span>               14d
+</span></span><span style="display:flex;"><span>kube-system    etcd-cp1                      1/1     Running             <span style="color:#ae81ff">8</span> <span style="color:#f92672">(</span>14d ago<span style="color:#f92672">)</span>     14d
+</span></span><span style="display:flex;"><span>kube-system    kube-apiserver-cp1            1/1     Running             <span style="color:#ae81ff">8</span> <span style="color:#f92672">(</span>14d ago<span style="color:#f92672">)</span>     14d
+</span></span><span style="display:flex;"><span>kube-system    kube-controller-manager-cp1   1/1     Running             <span style="color:#ae81ff">5</span> <span style="color:#f92672">(</span>14d ago<span style="color:#f92672">)</span>     14d
+</span></span><span style="display:flex;"><span>kube-system    kube-proxy-lr2xt              1/1     Running             <span style="color:#ae81ff">1</span> <span style="color:#f92672">(</span>14d ago<span style="color:#f92672">)</span>     14d
+</span></span><span style="display:flex;"><span>kube-system    kube-scheduler-cp1            1/1     Running             <span style="color:#ae81ff">5</span> <span style="color:#f92672">(</span>14d ago<span style="color:#f92672">)</span>     14d
+</span></span></code></pre></div><h3 id="the-fix">The Fix</h3>
+<ol>
+<li>Load Required Kernel Modules
+Run these on the host (cp1) as root to enable bridge-netfilter support:</li>
+</ol>
+<div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-bash" data-lang="bash"><span style="display:flex;"><span>sudo modprobe br_netfilter
+</span></span><span style="display:flex;"><span>sudo sysctl -w net.bridge.bridge-nf-call-iptables<span style="color:#f92672">=</span><span style="color:#ae81ff">1</span>
+</span></span><span style="display:flex;"><span>sudo sysctl -w net.bridge.bridge-nf-call-ip6tables<span style="color:#f92672">=</span><span style="color:#ae81ff">1</span>
+</span></span><span style="display:flex;"><span>echo <span style="color:#e6db74">&#39;net.bridge.bridge-nf-call-iptables = 1&#39;</span> | sudo tee -a /etc/sysctl.conf
+</span></span><span style="display:flex;"><span>echo <span style="color:#e6db74">&#39;net.bridge.bridge-nf-call-ip6tables = 1&#39;</span> | sudo tee -a /etc/sysctl.conf
+</span></span><span style="display:flex;"><span>sudo sysctl --system
+</span></span></code></pre></div><ol start="2">
+<li>Remove the failing pod</li>
+</ol>
+<div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-bash" data-lang="bash"><span style="display:flex;"><span>david@cp1:~ $ kubectl delete po kube-flannel-ds-wklmw -n kube-flannel
+</span></span><span style="display:flex;"><span>pod <span style="color:#e6db74">&#34;kube-flannel-ds-wklmw&#34;</span> deleted from kube-flannel namespace
+</span></span></code></pre></div><ol start="3">
+<li>Check everything is running</li>
+</ol>
+<div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-bash" data-lang="bash"><span style="display:flex;"><span>david@cp1:~ $ kubectl get pods -A
+</span></span><span style="display:flex;"><span>NAMESPACE      NAME                          READY   STATUS    RESTARTS      AGE
+</span></span><span style="display:flex;"><span>kube-flannel   kube-flannel-ds-76t52         1/1     Running   <span style="color:#ae81ff">0</span>             2m37s
+</span></span><span style="display:flex;"><span>kube-system    coredns-66bc5c9577-2crjn      1/1     Running   <span style="color:#ae81ff">0</span>             14d
+</span></span><span style="display:flex;"><span>kube-system    coredns-66bc5c9577-nx4x7      1/1     Running   <span style="color:#ae81ff">0</span>             14d
+</span></span><span style="display:flex;"><span>kube-system    etcd-cp1                      1/1     Running   <span style="color:#ae81ff">8</span> <span style="color:#f92672">(</span>14d ago<span style="color:#f92672">)</span>   14d
+</span></span><span style="display:flex;"><span>kube-system    kube-apiserver-cp1            1/1     Running   <span style="color:#ae81ff">8</span> <span style="color:#f92672">(</span>14d ago<span style="color:#f92672">)</span>   14d
+</span></span><span style="display:flex;"><span>kube-system    kube-controller-manager-cp1   1/1     Running   <span style="color:#ae81ff">5</span> <span style="color:#f92672">(</span>14d ago<span style="color:#f92672">)</span>   14d
+</span></span><span style="display:flex;"><span>kube-system    kube-proxy-lr2xt              1/1     Running   <span style="color:#ae81ff">1</span> <span style="color:#f92672">(</span>14d ago<span style="color:#f92672">)</span>   14d
+</span></span><span style="display:flex;"><span>kube-system    kube-scheduler-cp1            1/1     Running   <span style="color:#ae81ff">5</span> <span style="color:#f92672">(</span>14d ago<span style="color:#f92672">)</span>   14d
+</span></span></code></pre></div><h2 id="setting-up-control-plane-node-2-cp2">Setting up Control Plane node 2 (cp2):</h2>
+<p>For my second control plane node I have automated everything I&rsquo;ve done above with an install script. This will also be useful should I ever need to re-install everything on any node, from scratch. On your primary control plane node, running this <a href="https://github.com/dtlight/homelab/blob/main/runbooks/k8sSetup/install-k8s.sh">script</a> automates everything I did above and should create <code>join-controlplane.sh</code> with the necessary tokens inside.</p>
+<p>Copy the join commands to cp2, from cp1, using my mac (which can ssh to both nodes):</p>
+<div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-bash" data-lang="bash"><span style="display:flex;"><span>scp david@cp1:join-controlplane.sh david@cp2:join-controlplane.sh
+</span></span></code></pre></div><p>It&rsquo;s important to assign the correct environment variables described in the readMe of the install-k8s folder.</p>
+<p>The resulting output after a successfully run script:</p>
+<div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-bash" data-lang="bash"><span style="display:flex;"><span>This node has joined the cluster and a new control plane instance was created:
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span>* Certificate signing request was sent to apiserver and approval was received.
+</span></span><span style="display:flex;"><span>* The Kubelet was informed of the new secure connection details.
+</span></span><span style="display:flex;"><span>* Control plane label and taint were applied to the new node.
+</span></span><span style="display:flex;"><span>* The Kubernetes control plane instances scaled up.
+</span></span><span style="display:flex;"><span>* A new etcd member was added to the local/stacked etcd cluster.
+</span></span></code></pre></div>]]></content:encoded>
     </item>
     <item>
       <title>Resource Planning</title>
@@ -38,9 +836,60 @@ Disable swap and configure the kubelet cgroup driver to systemd on control plane
 &lt;ol&gt;
 &lt;li&gt;Two control plane nodes (cpl1 and cpl2 16gb ram): both running Raspberry Pi OS (Debian 13) in headless mode so are lightweight and Pi optimised. Etcd requires the most RAM (3GB for small clusters like mine with &amp;lt;100 pods), while other components should typically stay under 1GB each (with Prometheus at roughly 3gb as an exception) with my multi-node control plane set up which distributes load, so 16GB handles 20-50 pods across nodes without OOM issues.&lt;/li&gt;
 &lt;li&gt;Two worker nodes (wn1, wn2), one runs Talos OS and the other Debian. Talos is a highly secure yet minimal operating system. It runs Kubernetes natively with no host OS services competing for resources (workers use roughly 200MB RAM vs 1GB+ on Debian). However Talos requires control of the entire disk space (that is, it wipes and repartitions the full disk with a fixed layout) so i am limiting it to 1 worker node as I want the option of using the other worker node (an old ThinkPad) if I need it.
-I have mixed 8GB and 16GB worker nodes which work fine for my Kubernetes homelab, as schedulers automatically balance pods based on allocatable resources (node taints/labels also help). 8GB should handle 20-40 pods (e.g., Prometheus targets, Home Assistant), while 16GB can take heavier workloads like databases or future AI experiments without OOM issues.​&lt;/li&gt;
+I have mixed 8GB and 40GB worker nodes which work fine for my Kubernetes homelab, as schedulers automatically balance pods based on allocatable resources (node taints/labels also help). 8GB should handle 20-40 pods (e.g., Prometheus targets, Home Assistant), while 40GB can take heavier workloads like databases or future AI experiments without OOM issues.​&lt;/li&gt;
 &lt;/ol&gt;
 &lt;p&gt;Having two control plane nodes promotes High Availability (H.A) for the things I will run on my cluster, which would be frustrating to have offline:&lt;/p&gt;</description>
+      <content:encoded><![CDATA[<h2 id="resource-planning">Resource Planning</h2>
+<p>My four node cluster currently consists of:</p>
+<ol>
+<li>Two control plane nodes (cpl1 and cpl2 16gb ram): both running Raspberry Pi OS (Debian 13) in headless mode so are lightweight and Pi optimised. Etcd requires the most RAM (3GB for small clusters like mine with &lt;100 pods), while other components should typically stay under 1GB each (with Prometheus at roughly 3gb as an exception) with my multi-node control plane set up which distributes load, so 16GB handles 20-50 pods across nodes without OOM issues.</li>
+<li>Two worker nodes (wn1, wn2), one runs Talos OS and the other Debian. Talos is a highly secure yet minimal operating system. It runs Kubernetes natively with no host OS services competing for resources (workers use roughly 200MB RAM vs 1GB+ on Debian). However Talos requires control of the entire disk space (that is, it wipes and repartitions the full disk with a fixed layout) so i am limiting it to 1 worker node as I want the option of using the other worker node (an old ThinkPad) if I need it.
+I have mixed 8GB and 40GB worker nodes which work fine for my Kubernetes homelab, as schedulers automatically balance pods based on allocatable resources (node taints/labels also help). 8GB should handle 20-40 pods (e.g., Prometheus targets, Home Assistant), while 40GB can take heavier workloads like databases or future AI experiments without OOM issues.​</li>
+</ol>
+<p>Having two control plane nodes promotes High Availability (H.A) for the things I will run on my cluster, which would be frustrating to have offline:</p>
+<ul>
+<li><a href="https://hub.docker.com/r/homeassistant/home-assistant">HomeAssistant</a></li>
+<li><a href="https://hub.docker.com/r/adguard/adguardhome">AdGuard </a> (home dns server)</li>
+</ul>
+<p>To achieve H.A in a real world production environment using a hybrid cloud/on premise or cloud/cloud (eg aws/gcp) setup would be obviously more sensible than a cluster of raspberry pis. Also, my control plane nodes share the same ip via kube-virtual-ip which is owned by one of my control plane nodes. In a production environment this would be its own dedicated machine or better still a load balancer instead of kube-vip.</p>
+<p>I will create two namespaced environments, dev and prod. No pod in either environment runs on a control plane node.</p>
+<table>
+  <thead>
+      <tr>
+          <th>Node / Type</th>
+          <th>RAM Allocatable</th>
+          <th>Pod Capacity</th>
+          <th>Example Workloads</th>
+      </tr>
+  </thead>
+  <tbody>
+      <tr>
+          <td><strong>16GB</strong> / CP1</td>
+          <td>~14GB</td>
+          <td>50-80 pods</td>
+          <td>Etcd, Prometheus</td>
+      </tr>
+      <tr>
+          <td><strong>16GB</strong> / CP2</td>
+          <td>~14GB</td>
+          <td>50-80 pods</td>
+          <td>Same as CP1</td>
+      </tr>
+      <tr>
+          <td><strong>8GB</strong> / Worker 1 (arm)</td>
+          <td>6GB</td>
+          <td>20-40 pods</td>
+          <td>Pi-hole, Home Assistant monitoring agents, lightweight apps</td>
+      </tr>
+      <tr>
+          <td><strong>40GB</strong> / Worker 2 (x86)</td>
+          <td>36GB</td>
+          <td>100-200 pods</td>
+          <td>StatefulSets, Postgresql, heavy services</td>
+      </tr>
+  </tbody>
+</table>
+]]></content:encoded>
     </item>
   </channel>
 </rss>

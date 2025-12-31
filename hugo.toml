@@ -20,11 +20,11 @@ theme = 'PaperMod'
   weight = 2
 
 [params]
-  ShowFullTextinRSS = true  # Shows full post content in RSS feeds
+  ShowFullTextinRSS = true 
 
 [[params.socialIcons]]
   name = "rss"
-  url = "index.xml"  # Adds clickable RSS icon in header
+  url = "index.xml"  
 
 [outputs]
-  home = ["HTML", "RSS", "JSON"]  # Generates /index.xml at site root
+  home = ["HTML", "RSS", "JSON"]  
