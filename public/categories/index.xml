@@ -6,6 +6,28 @@
     <description>Recent content in Categories on David&#39;s Home Lab</description>
     <generator>Hugo -- 0.152.2</generator>
     <language>en-us</language>
+    <lastBuildDate>Sun, 14 Dec 2025 09:09:00 +0000</lastBuildDate>
     <atom:link href="http://localhost:1313/categories/index.xml" rel="self" type="application/rss+xml" />
+    <item>
+      <title>Setup</title>
+      <link>http://localhost:1313/categories/setup/</link>
+      <pubDate>Sun, 14 Dec 2025 09:09:00 +0000</pubDate>
+      <guid>http://localhost:1313/categories/setup/</guid>
+      <description></description>
+    </item>
+    <item>
+      <title>Design</title>
+      <link>http://localhost:1313/categories/design/</link>
+      <pubDate>Sat, 13 Dec 2025 09:09:00 +0000</pubDate>
+      <guid>http://localhost:1313/categories/design/</guid>
+      <description></description>
+    </item>
+    <item>
+      <title>Releases</title>
+      <link>http://localhost:1313/categories/releases/</link>
+      <pubDate>Sat, 13 Dec 2025 09:09:00 +0000</pubDate>
+      <guid>http://localhost:1313/categories/releases/</guid>
+      <description></description>
+    </item>
   </channel>
 </rss>
