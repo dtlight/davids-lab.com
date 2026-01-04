@@ -2,7 +2,7 @@
 title: "Configuring Alpine Linux on a RPi 4"
 date: 2025-12-15T09:09:00+00:00
 draft: false
-tags: ["talos", "alpine" "raspberry pi 4", "worker node"]
+tags: ["talos", "alpine", "raspberry pi 4", "worker node"]
 categories: ["worker node"]
 hiddenInHomeList: true
 ---
