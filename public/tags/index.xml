@@ -6,8 +6,29 @@
     <description>Recent content in Tags on David&#39;s Home Lab</description>
     <generator>Hugo -- 0.152.2</generator>
     <language>en-us</language>
-    <lastBuildDate>Sun, 14 Dec 2025 09:09:00 +0000</lastBuildDate>
+    <lastBuildDate>Tue, 30 Dec 2025 09:09:00 +0000</lastBuildDate>
     <atom:link href="http://localhost:1313/tags/index.xml" rel="self" type="application/rss+xml" />
+    <item>
+      <title>1.35</title>
+      <link>http://localhost:1313/tags/1.35/</link>
+      <pubDate>Tue, 30 Dec 2025 09:09:00 +0000</pubDate>
+      <guid>http://localhost:1313/tags/1.35/</guid>
+      <description></description>
+    </item>
+    <item>
+      <title>Release</title>
+      <link>http://localhost:1313/tags/release/</link>
+      <pubDate>Tue, 30 Dec 2025 09:09:00 +0000</pubDate>
+      <guid>http://localhost:1313/tags/release/</guid>
+      <description></description>
+    </item>
+    <item>
+      <title>Timbernetes</title>
+      <link>http://localhost:1313/tags/timbernetes/</link>
+      <pubDate>Tue, 30 Dec 2025 09:09:00 +0000</pubDate>
+      <guid>http://localhost:1313/tags/timbernetes/</guid>
+      <description></description>
+    </item>
     <item>
       <title>Configuration</title>
       <link>http://localhost:1313/tags/configuration/</link>
@@ -30,31 +51,10 @@
       <description></description>
     </item>
     <item>
-      <title>1.35</title>
-      <link>http://localhost:1313/tags/1.35/</link>
-      <pubDate>Sat, 13 Dec 2025 09:09:00 +0000</pubDate>
-      <guid>http://localhost:1313/tags/1.35/</guid>
-      <description></description>
-    </item>
-    <item>
       <title>Planning</title>
       <link>http://localhost:1313/tags/planning/</link>
       <pubDate>Sat, 13 Dec 2025 09:09:00 +0000</pubDate>
       <guid>http://localhost:1313/tags/planning/</guid>
-      <description></description>
-    </item>
-    <item>
-      <title>Release</title>
-      <link>http://localhost:1313/tags/release/</link>
-      <pubDate>Sat, 13 Dec 2025 09:09:00 +0000</pubDate>
-      <guid>http://localhost:1313/tags/release/</guid>
-      <description></description>
-    </item>
-    <item>
-      <title>Timbernetes</title>
-      <link>http://localhost:1313/tags/timbernetes/</link>
-      <pubDate>Sat, 13 Dec 2025 09:09:00 +0000</pubDate>
-      <guid>http://localhost:1313/tags/timbernetes/</guid>
       <description></description>
     </item>
   </channel>
