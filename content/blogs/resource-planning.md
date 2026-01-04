@@ -11,7 +11,8 @@ hiddenInHomeList: true
 ## Resource Planning
 My four node cluster currently consists of:
 1. Two control plane nodes (cpl1 and cpl2 16gb ram): both running Raspberry Pi OS (Debian 13) in headless mode so are lightweight and Pi optimised. Etcd requires the most RAM (3GB for small clusters like mine with <100 pods), while other components should typically stay under 1GB each (with Prometheus at roughly 3gb as an exception) with my multi-node control plane set up which distributes load, so 16GB handles 20-50 pods across nodes without OOM issues.
-2. Two worker nodes (wn1, wn2), one runs Talos OS and the other Debian. Talos is a highly secure yet minimal operating system. It runs Kubernetes natively with no host OS services competing for resources (workers use roughly 200MB RAM vs 1GB+ on Debian). However Talos requires control of the entire disk space (that is, it wipes and repartitions the full disk with a fixed layout) so i am limiting it to 1 worker node as I want the option of using the other worker node (an old ThinkPad) if I need it. 
+2. Two worker nodes (wn1, wn2), one runs Alpine and the other Debian. Alpine Linux is a highly secure yet minimal operating system. 
+
 I have mixed 8GB and 40GB worker nodes which work fine for my Kubernetes homelab, as schedulers automatically balance pods based on allocatable resources (node taints/labels also help). 8GB should handle 20-40 pods (e.g., Prometheus targets, Home Assistant), while 40GB can take heavier workloads like databases or future AI experiments without OOM issues.​
 
 Having two control plane nodes promotes High Availability (H.A) for the things I will run on my cluster, which would be frustrating to have offline:

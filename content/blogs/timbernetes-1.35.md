@@ -16,7 +16,7 @@ On 17 December 2025 Kubernetes released version 1.35 code named “Timbernetes�
 
 ## Release theme and scope
 
-Timbernetes leans into a “world tree” metaphor to emphasize maturity, deep roots in stability/security, and new “branches” for AI and edge workloads. The episode frames the release as one that will change how production clusters are run, highlighting 60+ enhancements and several high‑impact deprecations and removals.
+Timbernetes uses a “world tree” metaphor to emphasize maturity, deep roots in stability/security, and new “branches” for AI and edge workloads. 
 
 ## Three breaking changes
 There are at least three breaking changes that cluster operators must plan for before upgrading.
