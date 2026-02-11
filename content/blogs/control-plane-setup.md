@@ -262,14 +262,7 @@ CGROUPS_IO: enabled
 error: error execution phase preflight: preflight checks failed
 ```
 
-From the terminal output clearly several things are broken. 
-✅ CGROUPS_MEMORY: missing ← FIXED by cmdline.txt
-✅ CGROUPS_PIDS: enabled
-✅ CGROUPS_CPUSET: enabled  
-❌ aufs: not set ← Warning only
-❌ hugetlb: missing ← Warning only
-
-Note: Warnings (aufs, hugetlb) are non-fatal errors. In my Raspberry Pi cluster, overlayfs handles container storage and I'm not targeting hugepage workloads, so missing aufs and hugetlb is practically harmless and correctly reported as warnings, not fatal errors.
+Note: Warnings (aufs, hugetlb) are non-fatal errors. In my Raspberry Pi cluster, overlayfs handles container storage and I'm not targeting hugepage workloads, so missing aufs and hugetlb are not fatal errors.
 
 To fix the remaining errors:​
 
