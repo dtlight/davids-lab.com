@@ -1,6 +1,6 @@
 ---
 title: "Setting up ArgoCD"
-date: 2026-05-28T09:09:00+00:00
+date: 2026-01-15T09:09:00+00:00
 layout: "posts"
 draft: false
 tags: ["argocd", "traefik", "helm"]
